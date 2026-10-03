@@ -494,6 +494,23 @@ function renderFeedbackItem(client, row) {
   adminFeedbackList.appendChild(node);
 }
 
+// Applies a freshly saved/loaded asset URL to EVERY matching element on the
+// current page -- e.g. the admin header's own logo (data-asset-key="logo"),
+// not just the one grid card the admin is editing. This is what keeps the
+// admin portal's own branding in sync with whatever is saved, the same way
+// the storefront (index.html) already does via loadLiveSiteAssets().
+function applyAssetToPageElements(key, imageUrl) {
+  if (!key || !imageUrl) {
+    return;
+  }
+
+  document
+    .querySelectorAll('[data-asset-key="' + key + '"]')
+    .forEach(function (el) {
+      el.src = imageUrl;
+    });
+}
+
 async function loadSiteAssets(client) {
   if (!adminAssetGrid) {
     return;
@@ -524,6 +541,10 @@ async function loadSiteAssets(client) {
   }
 
   setAssetsStatus("", false);
+
+  data.forEach(function (row) {
+    applyAssetToPageElements(row.key, row.image_url);
+  });
 
   data.forEach(function (row) {
     renderAssetCard(client, row, adminAssetGrid);
@@ -602,6 +623,14 @@ async function saveAsset(client, key, fileInput, saveBtn, statusEl, imgEl, previ
 
     if (updateError) {
       throw updateError;
+    }
+
+    // Also push the new URL to any OTHER matching element on this page
+    // (e.g. the admin header's own logo), so it updates immediately without
+    // needing a refresh -- the live website picks it up the same way on its
+    // own next page load via loadLiveSiteAssets().
+    if (updatePayload.image_url) {
+      applyAssetToPageElements(key, updatePayload.image_url);
     }
 
     fileInput.value = "";
