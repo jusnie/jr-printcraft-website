@@ -1,0 +1,68 @@
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f8fc;padding:32px 16px;font-family:Georgia, 'Times New Roman', serif;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="100%" style="max-width:560px;background-color:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 20px 50px -24px rgba(23,32,51,0.25);">
+
+        <!-- Header -->
+        <tr>
+          <td style="background-color:#4a6e96;padding:28px 32px;">
+            <p style="margin:0;font-family:Georgia, serif;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#cfe0f0;">New Order</p>
+            <h1 style="margin:6px 0 0;font-family:Georgia, serif;font-size:24px;color:#ffffff;">JR PrintCraft Express</h1>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:32px;font-family:Arial, Helvetica, sans-serif;">
+            <p style="margin:0 0 20px;font-size:15px;color:#172033;">
+              You've received a new order through the website. Details below.
+            </p>
+
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:20px;">
+              <tr>
+                <td style="padding:10px 0;border-bottom:1px solid #e4e9f0;font-size:13px;color:#5a6779;width:40%;">Order Number</td>
+                <td style="padding:10px 0;border-bottom:1px solid #e4e9f0;font-size:14px;color:#172033;font-weight:bold;">{{order_number}}</td>
+              </tr>
+              <tr>
+                <td style="padding:10px 0;border-bottom:1px solid #e4e9f0;font-size:13px;color:#5a6779;">Customer Name</td>
+                <td style="padding:10px 0;border-bottom:1px solid #e4e9f0;font-size:14px;color:#172033;">{{customer_name}}</td>
+              </tr>
+              <tr>
+                <td style="padding:10px 0;border-bottom:1px solid #e4e9f0;font-size:13px;color:#5a6779;">Customer Email</td>
+                <td style="padding:10px 0;border-bottom:1px solid #e4e9f0;font-size:14px;color:#172033;">
+                  <a href="mailto:{{customer_email}}" style="color:#4a6e96;text-decoration:none;">{{customer_email}}</a>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:10px 0;border-bottom:1px solid #e4e9f0;font-size:13px;color:#5a6779;vertical-align:top;">Items</td>
+                <td style="padding:10px 0;border-bottom:1px solid #e4e9f0;font-size:14px;color:#172033;white-space:pre-line;">{{items_summary}}</td>
+              </tr>
+              <tr>
+                <td style="padding:10px 0;border-bottom:1px solid #e4e9f0;font-size:13px;color:#5a6779;">Item Count</td>
+                <td style="padding:10px 0;border-bottom:1px solid #e4e9f0;font-size:14px;color:#172033;">{{item_count}}</td>
+              </tr>
+              <tr>
+                <td style="padding:14px 0 0;font-size:13px;color:#5a6779;">Order Total</td>
+                <td style="padding:14px 0 0;font-size:20px;color:#37597c;font-weight:bold;">{{order_total}}</td>
+              </tr>
+            </table>
+
+            <a href="mailto:{{customer_email}}" style="display:inline-block;background-color:#4a6e96;color:#ffffff;text-decoration:none;font-family:Arial, Helvetica, sans-serif;font-size:14px;font-weight:bold;padding:12px 24px;border-radius:12px;">
+              Reply to Customer
+            </a>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background-color:#f5f8fc;padding:18px 32px;text-align:center;">
+            <p style="margin:0;font-family:Arial, Helvetica, sans-serif;font-size:12px;color:#8d9aab;">
+              Automated order notification from your JR PrintCraft Express website.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>

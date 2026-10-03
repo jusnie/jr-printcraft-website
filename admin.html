@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+
+  <title>Admin Dashboard - JR PrintCraft Express</title>
+
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@300;400;500;600;700;800&family=Newsreader:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+
+  <link rel="stylesheet" href="admin.css?v=1">
+</head>
+<body>
+
+  <header class="admin-bar">
+    <div class="admin-brand">
+      <img src="logo.png" alt="JR PrintCraft Express logo">
+      <span>Admin Dashboard</span>
+    </div>
+    <div class="admin-bar-actions">
+      <button type="button" class="btn ghost small" id="settingsBtn" hidden>Account Settings</button>
+      <button type="button" class="btn ghost small" id="logoutBtn" hidden>Log out</button>
+    </div>
+  </header>
+
+  <main class="admin-wrap">
+
+    <!-- Shown if supabase-config.js hasn't been filled in yet -->
+    <section class="admin-card setup-needed" id="setupNeeded" hidden>
+      <h1>Finish setup first</h1>
+      <p>
+        This admin dashboard needs Supabase connected before it can work.
+        Open <code>supabase-config.js</code> and fill in your
+        <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code>, then run
+        the SQL in <code>supabase-admin-setup.sql</code> once inside your
+        Supabase project's SQL Editor. Full steps are in the comments at the
+        top of <code>supabase-config.js</code>.
+      </p>
+    </section>
+
+    <!-- Login -->
+    <section class="admin-card login-card" id="loginSection" hidden>
+      <h1>Owner Login</h1>
+      <p class="muted">Sign in with the admin account you created in Supabase.</p>
+
+      <form id="loginForm" class="auth-form" novalidate>
+        <label for="loginEmail">Email</label>
+        <input type="email" id="loginEmail" name="email" autocomplete="username" required>
+
+        <label for="loginPassword">Password</label>
+        <input type="password" id="loginPassword" name="password" autocomplete="current-password" required>
+
+        <p class="form-error" id="loginError" hidden></p>
+
+        <button type="submit" class="btn primary" id="loginSubmit">Log In</button>
+      </form>
+
+      <button type="button" class="link-btn" id="forgotPasswordLink">Forgot password?</button>
+    </section>
+
+    <!-- Forgot password: request a reset link -->
+    <section class="admin-card login-card" id="forgotPasswordSection" hidden>
+      <h1>Reset your password</h1>
+      <p class="muted">Enter your admin email and we'll send you a secure reset link.</p>
+
+      <form id="forgotPasswordForm" class="auth-form" novalidate>
+        <label for="forgotPasswordEmail">Email</label>
+        <input type="email" id="forgotPasswordEmail" name="email" autocomplete="username" required>
+
+        <p class="form-error" id="forgotPasswordStatus" hidden></p>
+
+        <button type="submit" class="btn primary" id="forgotPasswordSubmit">Send Reset Link</button>
+      </form>
+
+      <button type="button" class="link-btn" id="backToLoginLink">Back to login</button>
+    </section>
+
+    <!-- Shown automatically when the admin opens the reset link from their email -->
+    <section class="admin-card login-card" id="resetPasswordSection" hidden>
+      <h1>Set a new password</h1>
+      <p class="muted">Choose a new password for your admin account.</p>
+
+      <form id="resetPasswordForm" class="auth-form" novalidate>
+        <label for="newPassword">New Password</label>
+        <input type="password" id="newPassword" name="newPassword" autocomplete="new-password" minlength="6" required>
+
+        <label for="confirmNewPassword">Confirm New Password</label>
+        <input type="password" id="confirmNewPassword" name="confirmNewPassword" autocomplete="new-password" minlength="6" required>
+
+        <p class="form-error" id="resetPasswordStatus" hidden></p>
+
+        <button type="submit" class="btn primary" id="resetPasswordSubmit">Save New Password</button>
+      </form>
+    </section>
+
+    <!-- Dashboard -->
+    <section class="dashboard" id="dashboardSection" hidden>
+
+      <div class="dashboard-head">
+        <h1>Manage Products</h1>
+        <p class="muted">Update the price and photo for any item. Changes appear on the live site immediately.</p>
+      </div>
+
+      <p class="dashboard-status" id="dashboardStatus" hidden></p>
+
+      <div class="admin-product-grid" id="adminProductGrid"></div>
+
+      <div class="dashboard-head dashboard-head-secondary">
+        <h1>Customer Feedback</h1>
+        <p class="muted">Feedback submitted from the website's Feedback section, newest first.</p>
+      </div>
+
+      <p class="dashboard-status" id="feedbackListStatus" hidden></p>
+
+      <div class="admin-feedback-list" id="adminFeedbackList"></div>
+
+      <div class="dashboard-head dashboard-head-secondary">
+        <h1>Branding, Gallery &amp; Ornament Designs</h1>
+        <p class="muted">
+          Update the logo, hero photo, the 4 showcase gallery photos, and the
+          4 Ceramic Ornament designs customers flip through using the
+          "Look 1 / 2 / 3 / 4" buttons. Choose a new photo, preview it, then save.
+        </p>
+      </div>
+
+      <p class="dashboard-status" id="assetsStatus" hidden></p>
+
+      <div class="admin-product-grid" id="adminAssetGrid"></div>
+    </section>
+
+  </main>
+
+  <!-- Account Settings modal -->
+  <div class="admin-modal-overlay" id="settingsOverlay">
+    <div class="admin-modal">
+      <div class="admin-modal-head">
+        <h3>Account Settings</h3>
+        <button type="button" class="admin-modal-close" id="settingsClose" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="admin-modal-body">
+        <section class="admin-settings-block">
+          <h4>Change Password</h4>
+          <form id="changePasswordForm" novalidate>
+            <label for="currentPassword">Current password</label>
+            <input type="password" id="currentPassword" autocomplete="current-password" required>
+
+            <label for="newPassword">New password</label>
+            <input type="password" id="newPassword" autocomplete="new-password" required minlength="6">
+
+            <label for="confirmPassword">Confirm new password</label>
+            <input type="password" id="confirmPassword" autocomplete="new-password" required minlength="6">
+
+            <p class="admin-settings-msg" id="passwordMsg" hidden></p>
+
+            <button type="submit" class="btn primary small">Update Password</button>
+          </form>
+        </section>
+
+        <section class="admin-settings-block">
+          <h4>Change Login Email</h4>
+          <p class="muted small-note">
+            We'll send a confirmation link to the new email. The change only
+            takes effect once you click that link.
+          </p>
+          <form id="changeEmailForm" novalidate>
+            <label for="newEmail">New login email</label>
+            <input type="email" id="newEmail" autocomplete="email" required>
+
+            <p class="admin-settings-msg" id="emailMsg" hidden></p>
+
+            <button type="submit" class="btn primary small">Update Email</button>
+          </form>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- Template for one editable product card (cloned by admin.js) -->
+  <template id="adminProductTemplate">
+    <article class="admin-product-card">
+      <div class="admin-product-image">
+        <img alt="">
+        <span class="admin-pending-badge" hidden>Preview - not saved yet</span>
+      </div>
+
+      <div class="admin-product-body">
+        <h3 class="admin-product-name"></h3>
+
+        <label class="admin-field">
+          <span>Price (CAD)</span>
+          <input type="number" step="0.01" min="0" class="admin-price-input">
+        </label>
+
+        <label class="admin-field admin-file-field">
+          <span>Replace photo</span>
+          <input type="file" accept="image/png, image/jpeg, image/webp" class="admin-file-input">
+        </label>
+
+        <div class="admin-card-actions">
+          <button type="button" class="btn primary small admin-save-btn">Save Changes</button>
+          <button type="button" class="btn ghost small admin-cancel-btn" hidden>Cancel</button>
+          <span class="admin-card-status"></span>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <!-- Template for one editable branding/gallery/ornament-design asset (cloned by admin.js) -->
+  <template id="adminAssetTemplate">
+    <article class="admin-product-card">
+      <div class="admin-product-image">
+        <img alt="">
+        <span class="admin-pending-badge" hidden>Preview - not saved yet</span>
+      </div>
+
+      <div class="admin-product-body">
+        <h3 class="admin-product-name"></h3>
+
+        <label class="admin-field admin-file-field">
+          <span>Replace photo</span>
+          <input type="file" accept="image/png, image/jpeg, image/webp" class="admin-file-input">
+        </label>
+
+        <div class="admin-card-actions">
+          <button type="button" class="btn primary small admin-save-btn">Save Changes</button>
+          <button type="button" class="btn ghost small admin-cancel-btn" hidden>Cancel</button>
+          <span class="admin-card-status"></span>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <!-- Template for one feedback entry (cloned by admin.js) -->
+  <template id="feedbackItemTemplate">
+    <article class="admin-feedback-item">
+      <div class="admin-feedback-top">
+        <div class="admin-feedback-meta">
+          <strong class="admin-feedback-name"></strong>
+          <span class="admin-feedback-email"></span>
+        </div>
+        <div class="admin-feedback-stars"></div>
+      </div>
+
+      <p class="admin-feedback-message"></p>
+
+      <div class="admin-feedback-bottom">
+        <span class="admin-feedback-date"></span>
+        <div class="admin-feedback-actions">
+          <button type="button" class="btn ghost small admin-feedback-read-btn">Mark as read</button>
+          <button type="button" class="btn ghost small admin-feedback-delete-btn">Delete</button>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js?v=1"></script>
+  <script src="admin.js?v=1" defer></script>
+</body>
+</html>

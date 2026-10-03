@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>JR PrintCraft Express</title>
+
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@300;400;500;600;700;800&family=Newsreader:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+
+  <link rel="stylesheet" href="style.css?v=3">
+</head>
+
+<body>
+  <header class="bar">
+    <a class="brand" href="#home">
+      <img src="logo.png" alt="JR PrintCraft Express logo" data-asset-key="logo">
+      <span>JR PrintCraft Express</span>
+    </a>
+
+    <nav class="nav" aria-label="Main navigation">
+      <a href="#home">Home</a>
+      <a href="#products">Products</a>
+      <a href="#showcase">Showcase</a>
+      <a href="#reviews">Reviews</a>
+      <a href="#feedback">Feedback</a>
+      <a href="#contact">Contact</a>
+    </nav>
+
+    <input class="nav-toggle" type="checkbox" id="nav-toggle">
+
+    <label class="burger" for="nav-toggle" aria-label="Open menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </label>
+
+    <div class="mobile-menu" aria-label="Mobile navigation">
+      <a href="#home">Home</a>
+      <a href="#products">Products</a>
+      <a href="#showcase">Showcase</a>
+      <a href="#reviews">Reviews</a>
+      <a href="#feedback">Feedback</a>
+      <a href="#contact">Contact</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="hero" id="home">
+      <div class="hero-copy">
+        <span class="tag">Canada-wide custom prints</span>
+
+        <h1>
+          Print gifts, promo items, and personalized products with a clean professional finish.
+        </h1>
+
+        <p>
+          JR PrintCraft Express makes custom products for gifts, events, small business branding,
+          and special occasions. We ship across Canada and accept custom design requests.
+        </p>
+
+        <div class="hero-actions">
+          <a href="#products" class="btn primary">Browse Products</a>
+          <a href="#contact" class="btn ghost">Contact Us</a>
+        </div>
+
+        <div class="hero-badges">
+          <span>Canada-wide shipping</span>
+          <span>Custom design</span>
+          <span>Fast response</span>
+        </div>
+      </div>
+
+      <div class="hero-card">
+        <img src="client1.jpg" alt="Featured custom product" data-asset-key="heroImage">
+
+        <div class="hero-card-info">
+          <h2>
+            Business-ready custom printing for personal and commercial use.
+          </h2>
+
+          <p>
+            Upload your design, add your text, choose your size, and send the order request.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="scroll-showcase" id="showcase">
+      <div class="marquee">
+        <div class="marquee-track">
+          <img src="client1.jpg" alt="Client finished product 1" data-asset-key="gallery1">
+          <img src="client2.jpg" alt="Client finished product 2" data-asset-key="gallery2">
+          <img src="client3.jpg" alt="Client finished product 3" data-asset-key="gallery3">
+          <img src="client4.jpg" alt="Client finished product 4" data-asset-key="gallery4">
+
+          <img src="client1.jpg" alt="Client finished product 1 duplicate" data-asset-key="gallery1">
+          <img src="client2.jpg" alt="Client finished product 2 duplicate" data-asset-key="gallery2">
+          <img src="client3.jpg" alt="Client finished product 3 duplicate" data-asset-key="gallery3">
+          <img src="client4.jpg" alt="Client finished product 4 duplicate" data-asset-key="gallery4">
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="products">
+      <div class="section-head reveal">
+        <span class="tag">Products</span>
+
+        <h2>Choose an item, customize it, and add it to cart.</h2>
+
+        <p>
+          Click "Customize" on a product to set its size, color, text, and quantity before adding it to your cart.
+        </p>
+      </div>
+
+      <div class="products-toolbar">
+        <label class="search-box" for="productSearch">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="m20 20-3.5-3.5"></path>
+          </svg>
+          <input
+            type="search"
+            id="productSearch"
+            placeholder="Search products..."
+            aria-label="Search products"
+          >
+        </label>
+
+        <div class="view-toggle" role="group" aria-label="Product view">
+          <button type="button" class="view-btn" id="gridViewBtn" aria-pressed="true" title="Grid view">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+              <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+              <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+              <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+            </svg>
+            <span class="sr-only">Grid view</span>
+          </button>
+
+          <button type="button" class="view-btn" id="listViewBtn" aria-pressed="false" title="List view">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="4.5" width="4" height="4" rx="1"></rect>
+              <path d="M10 6.5h11"></path>
+              <rect x="3" y="10.5" width="4" height="4" rx="1"></rect>
+              <path d="M10 12.5h11"></path>
+              <rect x="3" y="16.5" width="4" height="4" rx="1"></rect>
+              <path d="M10 18.5h11"></path>
+            </svg>
+            <span class="sr-only">List view</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid product-grid" id="productGrid">
+        <!-- Frosted Beer -->
+        <article class="product-card reveal">
+          <img
+            src="frosted-beer-16oz.jpg"
+            alt="Frosted Beer 16oz product image"
+          >
+
+          <div class="product-body">
+            <div class="product-top">
+              <h3>Frosted Beer 16oz</h3>
+              <span class="price">CAD 20</span>
+            </div>
+
+            <p class="desc">
+              A personalized frosted beer glass for gifts, events, or premium drinkware branding.
+            </p>
+
+            <div class="qty-box">
+              <button
+                type="button"
+                class="btn primary customize-btn"
+                data-product-key="frostedBeer"
+                data-product-name="Frosted Beer 16oz"
+                data-product-price="20"
+              >
+                Customize
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <!-- Ceramic Ornaments -->
+        <article class="product-card reveal">
+          <img
+            id="ornamentImage"
+            src="ornament-1.jpg"
+            alt="Ceramic ornament image 1"
+            data-asset-key="ornamentLook1"
+          >
+
+          <div class="product-body">
+            <div class="product-top">
+              <h3>Ceramic Ornaments</h3>
+              <span class="price">CAD 6</span>
+            </div>
+
+            <p class="desc">
+              Holiday or souvenir ornaments with four swappable design images.
+            </p>
+
+            <div class="product-actions">
+              <button type="button" id="ornamentLook1" class="mini-btn">Look 1</button>
+              <button type="button" id="ornamentLook2" class="mini-btn">Look 2</button>
+              <button type="button" id="ornamentLook3" class="mini-btn">Look 3</button>
+              <button type="button" id="ornamentLook4" class="mini-btn">Look 4</button>
+            </div>
+
+            <div class="qty-box">
+              <button
+                type="button"
+                class="btn primary customize-btn"
+                data-product-key="ornament"
+                data-product-name="Ceramic Ornaments"
+                data-product-price="6"
+              >
+                Customize
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <!-- Tshirt Front -->
+        <article class="product-card reveal">
+          <img
+            src="tshirt-front.jpg"
+            alt="Tshirt front only product image"
+          >
+
+          <div class="product-body">
+            <div class="product-top">
+              <h3>Tshirt - Front Only</h3>
+              <span class="price">CAD 20</span>
+            </div>
+
+            <p class="desc">
+              Clean front-print shirt for everyday wear, teams, and promo use.
+            </p>
+
+            <div class="qty-box">
+              <button
+                type="button"
+                class="btn primary customize-btn"
+                data-product-key="tshirtFront"
+                data-product-name="Tshirt - Front Only"
+                data-product-price="20"
+              >
+                Customize
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <!-- Tshirt Front and Back -->
+        <article class="product-card reveal">
+          <img
+            src="tshirt-front-back.jpg"
+            alt="Tshirt front and back product image"
+          >
+
+          <div class="product-body">
+            <div class="product-top">
+              <h3>Tshirt - Front and Back</h3>
+              <span class="price">CAD 24</span>
+            </div>
+
+            <p class="desc">
+              Full custom shirt with front and back printing.
+            </p>
+
+            <div class="qty-box">
+              <button
+                type="button"
+                class="btn primary customize-btn"
+                data-product-key="tshirtFrontBack"
+                data-product-name="Tshirt - Front and Back"
+                data-product-price="24"
+              >
+                Customize
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <!-- 40oz Tumbler -->
+        <article class="product-card reveal">
+          <img
+            src="40oz-sublimation-white-tumbler.jpg"
+            alt="40oz Sublimation White Travel Tumbler product image"
+          >
+
+          <div class="product-body">
+            <div class="product-top">
+              <h3>40oz Sublimation White Travel Tumbler</h3>
+              <span class="price">CAD 40</span>
+            </div>
+
+            <p class="desc">
+              Large travel tumbler with premium sublimation finish.
+            </p>
+
+            <div class="qty-box">
+              <button
+                type="button"
+                class="btn primary customize-btn"
+                data-product-key="tumbler40"
+                data-product-name="40oz Sublimation White Travel Tumbler"
+                data-product-price="40"
+              >
+                Customize
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <!-- Pickleball Cover -->
+        <article class="product-card reveal">
+          <img
+            src="pickleball-paddle-cover.jpg"
+            alt="Neoprene cover for pickleball paddle product image"
+          >
+
+          <div class="product-body">
+            <div class="product-top">
+              <h3>Neoprene Cover for Pickleball Paddle</h3>
+              <span class="price">CAD 15</span>
+            </div>
+
+            <p class="desc">
+              Protective neoprene cover for pickleball players.
+            </p>
+
+            <div class="qty-box">
+              <button
+                type="button"
+                class="btn primary customize-btn"
+                data-product-key="pickleballCover"
+                data-product-name="Neoprene Cover for Pickleball Paddle"
+                data-product-price="15"
+              >
+                Customize
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <!-- Fabric Notebook -->
+        <article class="product-card reveal">
+          <img
+            src="fabric-notebook.jpg"
+            alt="Fabric notebook product image"
+          >
+
+          <div class="product-body">
+            <div class="product-top">
+              <h3>Fabric Notebook</h3>
+              <span class="price">CAD 20</span>
+            </div>
+
+            <p class="desc">
+              Elegant notebook with a fabric cover.
+            </p>
+
+            <div class="qty-box">
+              <button
+                type="button"
+                class="btn primary customize-btn"
+                data-product-key="fabricNotebook"
+                data-product-name="Fabric Notebook"
+                data-product-price="20"
+              >
+                Customize
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <!-- Stainless Steel Tumbler -->
+        <article class="product-card reveal">
+          <img
+            src="stainless-steel-white-tumbler.jpg"
+            alt="Stainless Steel White Tumbler product image"
+          >
+
+          <div class="product-body">
+            <div class="product-top">
+              <h3>Stainless Steel White Tumbler</h3>
+              <span class="price">CAD 25</span>
+            </div>
+
+            <p class="desc">
+              Classic white tumbler for clean custom designs.
+            </p>
+
+            <div class="qty-box">
+              <button
+                type="button"
+                class="btn primary customize-btn"
+                data-product-key="steelTumbler"
+                data-product-name="Stainless Steel White Tumbler"
+                data-product-price="25"
+              >
+                Customize
+              </button>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <p class="no-results" id="noResults" hidden>
+        No products match your search. Try a different keyword.
+      </p>
+    </section>
+
+    <section class="section custom-box" id="customize">
+      <div class="section-head reveal">
+        <span class="tag">Checkout</span>
+
+        <h2>Review &amp; send your order</h2>
+
+        <p>
+          Click "Customize" on any product above to add it here, then confirm your details and send your order.
+        </p>
+      </div>
+
+      <div class="custom-layout">
+        <div class="custom-preview reveal">
+          <div class="section-head small-head">
+            <span class="tag">Your Cart</span>
+            <h2>Order summary</h2>
+            <p>Items you add will appear here.</p>
+          </div>
+
+          <div id="summaryPreview" class="summary-list"></div>
+
+          <div class="cart-grand-total" id="cartGrandTotal" hidden>
+            <span>Total Payment <span id="cartItemCount">0 items</span></span>
+            <strong id="cartGrandTotalValue">CAD 0.00</strong>
+          </div>
+        </div>
+
+        <form class="custom-form reveal" id="orderForm">
+          <label for="customerName">
+            Your Name
+            <input
+              type="text"
+              id="customerName"
+              placeholder="Enter your name"
+              required
+            >
+          </label>
+
+          <label for="customerEmail">
+            Your Email
+            <input
+              type="email"
+              id="customerEmail"
+              placeholder="Enter your email"
+              required
+            >
+          </label>
+
+          <p class="empty-cart-note" id="emptyCartNote">
+            Your cart is empty. Click "Customize" on a product above and add it to your cart before sending your order.
+          </p>
+
+          <button type="submit" class="btn primary" id="sendOrderBtn">
+            Send Order via Email
+          </button>
+
+          <p class="order-status" id="orderStatus" hidden></p>
+        </form>
+      </div>
+    </section>
+
+    <section class="section" id="reviews">
+      <div class="section-head reveal">
+        <span class="tag">Reviews</span>
+        <h2>What customers say</h2>
+      </div>
+
+      <div class="grid review-grid">
+        <div class="review-card reveal">
+          <div class="stars">★★★★★</div>
+          <p>
+            “The custom shirt quality was clean and the print looked professional.”
+          </p>
+          <strong>- Client A</strong>
+        </div>
+
+        <div class="review-card reveal">
+          <div class="stars">★★★★★</div>
+          <p>
+            “Loved the ornament design options. The final result was beautiful.”
+          </p>
+          <strong>- Client B</strong>
+        </div>
+
+        <div class="review-card reveal">
+          <div class="stars">★★★★★</div>
+          <p>
+            “Great for gifts and business promo items.”
+          </p>
+          <strong>- Client C</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="feedback">
+      <div class="section-head reveal">
+        <span class="tag">Feedback</span>
+        <h2>Tell us how we did.</h2>
+        <p>Your feedback goes straight to the owner &mdash; good, bad, or just a suggestion.</p>
+      </div>
+
+      <form class="feedback-form custom-form reveal" id="feedbackForm" novalidate>
+        <div class="feedback-grid">
+          <label>
+            Name (optional)
+            <input type="text" id="feedbackName" name="name" placeholder="Your name" autocomplete="name">
+          </label>
+
+          <label>
+            Email (optional)
+            <input type="email" id="feedbackEmail" name="email" placeholder="you@example.com" autocomplete="email">
+          </label>
+        </div>
+
+        <label class="feedback-rating-field">
+          Rating (optional)
+          <div class="feedback-rating" id="feedbackRating" role="radiogroup" aria-label="Rating out of 5">
+            <button type="button" class="star-btn" data-value="1" aria-label="1 star" aria-pressed="false">★</button>
+            <button type="button" class="star-btn" data-value="2" aria-label="2 stars" aria-pressed="false">★</button>
+            <button type="button" class="star-btn" data-value="3" aria-label="3 stars" aria-pressed="false">★</button>
+            <button type="button" class="star-btn" data-value="4" aria-label="4 stars" aria-pressed="false">★</button>
+            <button type="button" class="star-btn" data-value="5" aria-label="5 stars" aria-pressed="false">★</button>
+          </div>
+          <input type="hidden" id="feedbackRatingValue" name="rating" value="">
+        </label>
+
+        <label>
+          Your feedback
+          <textarea id="feedbackMessage" name="message" rows="4" placeholder="What did you think?" required></textarea>
+        </label>
+
+        <p class="order-status" id="feedbackStatus" hidden></p>
+
+        <button type="submit" class="btn primary" id="feedbackSubmitBtn">Send Feedback</button>
+      </form>
+    </section>
+
+    <section class="section contact" id="contact">
+      <div class="section-head reveal">
+        <span class="tag">Contact</span>
+
+        <h2>JR PrintCraft Express ships across Canada.</h2>
+
+        <p>
+          Message us through Gmail, Facebook, or call directly for custom orders.
+        </p>
+      </div>
+
+      <div class="contact-buttons">
+        <a
+          class="btn primary icon-btn"
+          href="mailto:jr.printcraftexpress@gmail.com"
+        >
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2.5" y="4.5" width="19" height="15" rx="2.5"></rect>
+            <path d="m3.5 6 8.5 7 8.5-7"></path>
+          </svg>
+          Email
+        </a>
+
+        <a
+          class="btn primary icon-btn"
+          href="https://www.facebook.com/YOUR_PAGE_LINK"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M13.5 21v-7.2h2.42l.36-2.8h-2.78V9.2c0-.81.22-1.36 1.39-1.36h1.48V5.33c-.26-.03-1.14-.11-2.17-.11-2.15 0-3.62 1.31-3.62 3.72v2.08H8.15v2.8h2.43V21h2.92Z"></path>
+          </svg>
+          Facebook
+        </a>
+
+        <a
+          class="btn primary icon-btn"
+          href="tel:+16729681724"
+        >
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5.3 3.5h3.1l1.4 4.2-2.1 1.7a12.6 12.6 0 0 0 6.9 6.9l1.7-2.1 4.2 1.4v3.1c0 1.1-.9 2-2 2A17.4 17.4 0 0 1 3.3 5.5c0-1.1.9-2 2-2Z"></path>
+          </svg>
+          Call
+        </a>
+      </div>
+
+      <div class="contact-form-wrap reveal">
+        <div class="section-head small-head">
+          <span class="tag">Send a Message</span>
+          <h2>Prefer to type it out?</h2>
+          <p>Fill this out and it lands straight in our inbox.</p>
+        </div>
+
+        <form class="custom-form contact-form" id="contactForm" novalidate>
+          <div class="feedback-grid">
+            <label>
+              Your Name
+              <input type="text" id="contactName" name="name" placeholder="Your name" required autocomplete="name">
+            </label>
+
+            <label>
+              Your Email
+              <input type="email" id="contactEmail" name="email" placeholder="you@example.com" required autocomplete="email">
+            </label>
+          </div>
+
+          <label>
+            Message
+            <textarea id="contactMessage" name="message" rows="4" placeholder="How can we help?" required></textarea>
+          </label>
+
+          <p class="order-status" id="contactStatus" hidden></p>
+
+          <button type="submit" class="btn primary" id="contactSubmitBtn">Send Message</button>
+        </form>
+      </div>
+
+      <div class="contact-info-grid">
+        <div class="info-card reveal">
+          <span class="info-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2.5" y="4.5" width="19" height="15" rx="2.5"></rect>
+              <path d="m3.5 6 8.5 7 8.5-7"></path>
+            </svg>
+          </span>
+          <span class="info-text">
+            <span class="info-label">Email</span>
+            <span class="info-value">jr.printcraftexpress@gmail.com</span>
+          </span>
+        </div>
+
+        <div class="info-card reveal">
+          <span class="info-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5.3 3.5h3.1l1.4 4.2-2.1 1.7a12.6 12.6 0 0 0 6.9 6.9l1.7-2.1 4.2 1.4v3.1c0 1.1-.9 2-2 2A17.4 17.4 0 0 1 3.3 5.5c0-1.1.9-2 2-2Z"></path>
+            </svg>
+          </span>
+          <span class="info-text">
+            <span class="info-label">Phone</span>
+            <span class="info-value">(672) 968-1724</span>
+          </span>
+        </div>
+
+        <div class="info-card reveal">
+          <span class="info-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12.59 2.59a2 2 0 0 0-2.83 0L3 9.34a2 2 0 0 0 0 2.83l8.83 8.83a2 2 0 0 0 2.83 0l6.76-6.76a2 2 0 0 0 0-2.83Z"></path>
+              <circle cx="7.5" cy="7.5" r="1.4"></circle>
+            </svg>
+          </span>
+          <span class="info-text">
+            <span class="info-label">Business</span>
+            <span class="info-value">JR PrintCraft Express</span>
+          </span>
+        </div>
+
+        <div class="info-card reveal">
+          <span class="info-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9"></circle>
+              <path d="M3 12h18"></path>
+              <path d="M12 3c2.5 2.5 2.5 15.5 0 18"></path>
+              <path d="M12 3c-2.5 2.5-2.5 15.5 0 18"></path>
+            </svg>
+          </span>
+          <span class="info-text">
+            <span class="info-label">Shipping</span>
+            <span class="info-value">Canada</span>
+          </span>
+        </div>
+
+        <div class="info-card reveal">
+          <span class="info-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2.5" y="5.5" width="19" height="13" rx="2"></rect>
+              <circle cx="12" cy="12" r="2.6"></circle>
+              <path d="M5.5 5.5v13"></path>
+              <path d="M18.5 5.5v13"></path>
+            </svg>
+          </span>
+          <span class="info-text">
+            <span class="info-label">Payment</span>
+            <span class="info-value">In Person / Cash on Delivery</span>
+          </span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="foot-row">
+      <p>© 2026 JR PrintCraft Express. All rights reserved.</p>
+      <p>Custom apparel, gifts, and promo items.</p>
+    </div>
+
+    <nav class="foot-links" aria-label="Legal links">
+      <button type="button" class="link-btn" data-open-modal="termsModal">Terms &amp; Conditions</button>
+      <span class="dot" aria-hidden="true">•</span>
+      <button type="button" class="link-btn" data-open-modal="cookieModal">Cookie Policy</button>
+    </nav>
+  </footer>
+
+  <div class="modal-overlay" id="customizeModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="customizeModalTitle">
+      <div class="modal-head">
+        <h3 id="customizeModalTitle">Customize your item</h3>
+        <button type="button" class="modal-close" data-close-modal aria-label="Close dialog">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="customize-modal-product">
+          <strong id="customizeProductName">Product Name</strong>
+          <span id="customizeProductPrice">CAD 0.00</span>
+        </div>
+
+        <form id="customizeForm">
+          <label for="customizeSize">
+            Size
+            <select id="customizeSize">
+              <option>Small</option>
+              <option>Medium</option>
+              <option>Large</option>
+              <option>XL</option>
+            </select>
+          </label>
+
+          <label for="customizeColor">
+            Color
+            <select id="customizeColor">
+              <option>White</option>
+              <option>Black</option>
+              <option>Red</option>
+              <option>Blue</option>
+              <option>Pink</option>
+              <option>Gray</option>
+            </select>
+          </label>
+
+          <label for="customizeText">
+            Custom Text
+            <input
+              type="text"
+              id="customizeText"
+              placeholder="Example: Happy Birthday"
+            >
+          </label>
+
+          <div class="upload-field">
+            <span class="upload-field-label">Design Image Upload</span>
+
+            <div class="upload-box" id="customizeUploadBox">
+              <input
+                type="file"
+                id="customizeDesignUpload"
+                accept="image/*"
+                class="upload-input-hidden"
+              >
+
+              <button type="button" class="btn ghost upload-btn" id="customizeUploadBtn">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 16V4"></path>
+                  <path d="M6.5 9.5 12 4l5.5 5.5"></path>
+                  <path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"></path>
+                </svg>
+                <span>Choose Design Image</span>
+              </button>
+
+              <div class="upload-preview" id="customizeUploadPreview" hidden>
+                <img id="customizeUploadThumb" alt="Uploaded design preview">
+              </div>
+
+              <div class="upload-meta">
+                <span class="upload-filename" id="customizeUploadFileName">No file chosen</span>
+                <span class="upload-hint">PNG or JPG &middot; Max 2MB</span>
+              </div>
+
+              <button type="button" class="upload-remove" id="customizeUploadRemove" hidden aria-label="Remove uploaded image">×</button>
+            </div>
+          </div>
+
+
+          <label for="customizeNotes">
+            Notes
+            <textarea
+              id="customizeNotes"
+              rows="3"
+              placeholder="Put your design idea or special instructions"
+            ></textarea>
+          </label>
+
+          <label for="customizeQty">
+            Quantity
+            <div class="qty-box modal-qty">
+              <button type="button" id="customizeMinus" class="mini-btn">−</button>
+
+              <input
+                type="number"
+                id="customizeQty"
+                value="1"
+                min="1"
+                step="1"
+                aria-label="Quantity"
+              >
+
+              <button type="button" id="customizePlus" class="mini-btn">+</button>
+            </div>
+          </label>
+
+          <div class="custom-total">
+            <span>Item Total</span>
+            <strong id="customizeItemTotal">CAD 0.00</strong>
+          </div>
+
+          <button type="button" class="btn primary" id="customizeAddToCart">
+            Add to Cart
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="termsModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="termsModalTitle">
+      <div class="modal-head">
+        <h3 id="termsModalTitle">Terms &amp; Conditions</h3>
+        <button type="button" class="modal-close" data-close-modal aria-label="Close dialog">×</button>
+      </div>
+
+      <div class="modal-body">
+        <p>Last updated: October 2026</p>
+
+        <h4>1. Orders &amp; Customization</h4>
+        <p>
+          By placing an order with JR PrintCraft Express, you confirm that the
+          text, images, and designs you submit are either owned by you or
+          used with permission. We reserve the right to decline any design
+          that infringes copyright, trademark rights, or contains offensive
+          content.
+        </p>
+
+        <h4>2. Payment</h4>
+        <p>
+          Payment is made in person or as cash on delivery (COD) upon
+          pickup or drop-off of your order. Prices listed are in CAD and may
+          change without prior notice for future orders.
+        </p>
+
+        <h4>3. Production &amp; Shipping</h4>
+        <ul>
+          <li>Standard production time is 3–7 business days depending on order volume.</li>
+          <li>We ship across Canada; delivery times vary by courier and location.</li>
+          <li>You will receive tracking information once your order has shipped.</li>
+        </ul>
+
+        <h4>4. Returns &amp; Refunds</h4>
+        <p>
+          Because most products are custom-made to order, we cannot accept
+          returns for buyer's remorse or incorrect size/color selections made
+          at checkout. Refunds or reprints are offered for items that arrive
+          damaged, defective, or significantly different from the approved
+          design.
+        </p>
+
+        <h4>5. Limitation of Liability</h4>
+        <p>
+          JR PrintCraft Express is not liable for indirect or incidental
+          damages arising from the use of our products. Our maximum liability
+          is limited to the amount paid for the order in question.
+        </p>
+
+        <h4>6. Changes to These Terms</h4>
+        <p>
+          We may update these Terms &amp; Conditions from time to time. Continued
+          use of this site after changes means you accept the updated terms.
+        </p>
+
+        <p>
+          Questions about these terms? Contact us at
+          jr.printcraftexpress@gmail.com.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="cookieModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cookieModalTitle">
+      <div class="modal-head">
+        <h3 id="cookieModalTitle">Cookie Policy</h3>
+        <button type="button" class="modal-close" data-close-modal aria-label="Close dialog">×</button>
+      </div>
+
+      <div class="modal-body">
+        <p>Last updated: October 2026</p>
+
+        <p>
+          This site uses cookies and similar browser storage to make your
+          shopping experience smoother. Here is what we use and why:
+        </p>
+
+        <h4>Essential cookies</h4>
+        <p>
+          Required for core site functions, like remembering your cart
+          preview and quantity selections while you browse. The site will
+          not function properly without these.
+        </p>
+
+        <h4>Preference cookies</h4>
+        <p>
+          Used to remember choices you make, such as your cookie consent
+          decision, so we don't ask again on every visit.
+        </p>
+
+        <h4>Analytics &amp; performance (optional)</h4>
+        <p>
+          If enabled in the future, these would help us understand how
+          visitors use the site so we can improve products and pages. We do
+          not currently sell or share your data with advertisers.
+        </p>
+
+        <h4>Managing cookies</h4>
+        <p>
+          You can clear or block cookies anytime through your browser
+          settings. Blocking essential cookies may affect how the cart and
+          order form work on this site.
+        </p>
+
+        <p>
+          Questions about our cookie use? Contact us at
+          jr.printcraftexpress@gmail.com.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="cookie-banner" id="cookieBanner" hidden>
+    <p>
+      We use cookies to keep your cart working and improve your browsing
+      experience. By continuing to browse, you agree to our
+      <button type="button" class="link-btn inline" data-open-modal="cookieModal">Cookie Policy</button>.
+    </p>
+
+    <div class="cookie-actions">
+      <button type="button" class="btn ghost small" id="cookieDecline">Decline</button>
+      <button type="button" class="btn primary small" id="cookieAccept">Accept</button>
+    </div>
+  </div>
+
+
+  <!-- Supabase: used to upload design images and get a public link for orders -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- EmailJS: used to send orders straight to the shop owner's inbox -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+  <script src="supabase-config.js?v=1"></script>
+  <script src="script.js?v=5" defer></script>
+</body>
+</html>

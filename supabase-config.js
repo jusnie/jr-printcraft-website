@@ -1,0 +1,142 @@
+"use strict";
+
+/* ========================================================================
+ * SHARED THIRD-PARTY SERVICE CONFIG
+ * ------------------------------------------------------------------------
+ * Loaded by BOTH index.html (the storefront) and admin.html (the owner's
+ * admin dashboard), so you only need to fill in these values ONCE.
+ *
+ *  1) SUPABASE -> used for:
+ *     a) storing uploaded customer design images (Storage bucket:
+ *        SUPABASE_DESIGNS_BUCKET) so they can be emailed as a short link
+ *     b) storing product photos the owner uploads from the admin
+ *        dashboard (Storage bucket: SUPABASE_PRODUCTS_BUCKET)
+ *     c) storing live product price/image data (Table:
+ *        SUPABASE_PRODUCTS_TABLE) that the storefront reads on page load
+ *        and the admin dashboard edits
+ *     d) storing branding/gallery/ornament design photos (Table:
+ *        SUPABASE_SITE_ASSETS_TABLE)
+ *     e) storing customer feedback submissions (Table:
+ *        SUPABASE_FEEDBACK_TABLE) so the owner can review them in
+ *        admin.html
+ *     f) the admin login itself (Supabase Auth), including the
+ *        "Forgot password" email flow
+ *
+ *     Setup steps:
+ *     - Create a free project at https://supabase.com
+ *     - Project Settings > API gives you the Project URL and anon public key
+ *     - Run the SQL in supabase-admin-setup.sql (once) in the Supabase
+ *       SQL Editor to create the tables + storage buckets + the security
+ *       policies that let the storefront READ data but only a logged-in
+ *       admin can WRITE/update it
+ *     - Authentication > Users > Add User to create the one owner login
+ *       (email + password) used to sign in to admin.html
+ *     - Authentication > URL Configuration > Redirect URLs: add the URL
+ *       where you host admin.html (e.g. https://yourname.github.io/repo/admin.html)
+ *       so the "Forgot password" reset link is allowed to redirect back to it
+ *
+ *  2) EMAILJS -> sends orders, feedback, contact messages, and password
+ *     reset notifications straight to your inbox automatically. TWO
+ *     separate EmailJS accounts are used here (each account only gets one
+ *     connected email service on the free plan):
+ *
+ *     ACCOUNT 1 -> orders + the "Contact Us" form
+ *       - EMAILJS_ACCOUNT_1_PUBLIC_KEY / EMAILJS_ACCOUNT_1_SERVICE_ID
+ *       - EMAILJS_ORDER_TEMPLATE_ID    -> variables: {{order_number}}
+ *         {{customer_name}} {{customer_email}} {{items_summary}}
+ *         {{order_total}} {{item_count}}
+ *       - EMAILJS_CONTACT_TEMPLATE_ID  -> variables: {{customer_name}}
+ *         {{customer_email}} {{message}}
+ *
+ *     ACCOUNT 2 -> customer feedback + admin password-reset notifications
+ *       - EMAILJS_ACCOUNT_2_PUBLIC_KEY / EMAILJS_ACCOUNT_2_SERVICE_ID
+ *       - EMAILJS_FEEDBACK_TEMPLATE_ID      -> variables: {{customer_name}}
+ *         {{customer_email}} {{rating}} {{message}}
+ *       - EMAILJS_RESET_NOTIFY_TEMPLATE_ID  -> variables:
+ *         {{account_email}} {{requested_at}}
+ *         (this is just an FYI email to you whenever someone requests a
+ *         password reset on admin.html -- the actual secure reset link is
+ *         always sent by Supabase itself, not EmailJS)
+ *
+ * Until these are filled in, everything keeps working the old way:
+ * the storefront shows its built-in hardcoded prices/photos, designs
+ * stay only in the browser (not emailed), orders/feedback/contact open as
+ * a draft in the customer's own email app, and admin.html shows a "finish
+ * setup" notice instead of a login form.
+ * ====================================================================== */
+const SUPABASE_URL = "https://vhpsdwsfexnwcvtjbswk.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_3w8cJp6MxaKf1nFoxgazJw__fFK5RdV";
+const SUPABASE_DESIGNS_BUCKET = "designs";
+const SUPABASE_PRODUCTS_BUCKET = "product-images";
+const SUPABASE_PRODUCTS_TABLE = "products";
+const SUPABASE_SITE_ASSETS_BUCKET = "site-assets";
+const SUPABASE_SITE_ASSETS_TABLE = "site_assets";
+const SUPABASE_FEEDBACK_TABLE = "feedback";
+
+// ---- EmailJS Account 1: orders + contact form -----------------------------
+const EMAILJS_ACCOUNT_1_PUBLIC_KEY = "RqKFWxsBxrbdt_hCY";
+const EMAILJS_ACCOUNT_1_SERVICE_ID = "service_lv1ldvg";
+const EMAILJS_ORDER_TEMPLATE_ID = "template_q39g72s";
+const EMAILJS_CONTACT_TEMPLATE_ID = "template_h3p6j3l";
+
+// ---- EmailJS Account 2: feedback + admin reset-password notifications ----
+const EMAILJS_ACCOUNT_2_PUBLIC_KEY = "n2siGwvWOa4o4N2a8";
+const EMAILJS_ACCOUNT_2_SERVICE_ID = "service_wdfomfq";
+const EMAILJS_FEEDBACK_TEMPLATE_ID = "template_e6f8qbn";
+const EMAILJS_RESET_NOTIFY_TEMPLATE_ID = "template_38q2z6b";
+
+function isSupabaseConfigured() {
+  return (
+    SUPABASE_URL.indexOf("YOUR_") !== 0 &&
+    SUPABASE_ANON_KEY.indexOf("YOUR_") !== 0
+  );
+}
+
+function isOrderEmailConfigured() {
+  return (
+    EMAILJS_ACCOUNT_1_PUBLIC_KEY.indexOf("YOUR_") !== 0 &&
+    EMAILJS_ACCOUNT_1_SERVICE_ID.indexOf("YOUR_") !== 0 &&
+    EMAILJS_ORDER_TEMPLATE_ID.indexOf("YOUR_") !== 0
+  );
+}
+
+function isContactEmailConfigured() {
+  return (
+    EMAILJS_ACCOUNT_1_PUBLIC_KEY.indexOf("YOUR_") !== 0 &&
+    EMAILJS_ACCOUNT_1_SERVICE_ID.indexOf("YOUR_") !== 0 &&
+    EMAILJS_CONTACT_TEMPLATE_ID.indexOf("YOUR_") !== 0
+  );
+}
+
+function isFeedbackEmailConfigured() {
+  return (
+    EMAILJS_ACCOUNT_2_PUBLIC_KEY.indexOf("YOUR_") !== 0 &&
+    EMAILJS_ACCOUNT_2_SERVICE_ID.indexOf("YOUR_") !== 0 &&
+    EMAILJS_FEEDBACK_TEMPLATE_ID.indexOf("YOUR_") !== 0
+  );
+}
+
+function isResetNotifyConfigured() {
+  return (
+    EMAILJS_ACCOUNT_2_PUBLIC_KEY.indexOf("YOUR_") !== 0 &&
+    EMAILJS_ACCOUNT_2_SERVICE_ID.indexOf("YOUR_") !== 0 &&
+    EMAILJS_RESET_NOTIFY_TEMPLATE_ID.indexOf("YOUR_") !== 0
+  );
+}
+
+let sharedSupabaseClient = null;
+
+function getSupabaseClient() {
+  if (!isSupabaseConfigured() || !window.supabase) {
+    return null;
+  }
+
+  if (!sharedSupabaseClient) {
+    sharedSupabaseClient = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY
+    );
+  }
+
+  return sharedSupabaseClient;
+}
