@@ -27,6 +27,14 @@ const emailMsg = document.getElementById("emailMsg");
 const dashboardStatus = document.getElementById("dashboardStatus");
 const adminProductGrid = document.getElementById("adminProductGrid");
 const adminProductTemplate = document.getElementById("adminProductTemplate");
+const addProductToggleBtn = document.getElementById("addProductToggleBtn");
+const addProductForm = document.getElementById("addProductForm");
+const addProductCancelBtn = document.getElementById("addProductCancelBtn");
+const addProductStatus = document.getElementById("addProductStatus");
+const newProductName = document.getElementById("newProductName");
+const newProductPrice = document.getElementById("newProductPrice");
+const newProductDescription = document.getElementById("newProductDescription");
+const newProductPhoto = document.getElementById("newProductPhoto");
 const assetsStatus = document.getElementById("assetsStatus");
 const adminAssetGrid = document.getElementById("adminAssetGrid");
 const adminAssetTemplate = document.getElementById("adminAssetTemplate");
@@ -146,6 +154,7 @@ async function enterDashboard(client) {
   currentUserEmail = data && data.user ? data.user.email : "";
 
   await loadProducts(client);
+  connectAddProductForm(client);
   await loadFeedback(client);
   await loadSiteAssets(client);
 }
@@ -182,7 +191,7 @@ async function loadProducts(client) {
 
   const { data, error } = await client
     .from(SUPABASE_PRODUCTS_TABLE)
-    .select("key, name, price, image_url")
+    .select("key, name, price, image_url, description")
     .order("sort_order", { ascending: true });
 
   if (error) {
@@ -218,7 +227,7 @@ async function loadProducts(client) {
  * out to the current live photo with one click instead of ever being left
  * looking at a blank/broken "no design" image.
  * ====================================================================== */
-function setupImagePreview(fileInput, imgEl, pendingBadge, cancelBtn, statusEl) {
+function setupImagePreview(fileInput, imgEl, pendingBadge, cancelBtn, statusEl, nameDisplayEl) {
   let savedSrc = imgEl.src;
   let objectUrl = null;
 
@@ -239,6 +248,10 @@ function setupImagePreview(fileInput, imgEl, pendingBadge, cancelBtn, statusEl) 
     cancelBtn.hidden = false;
     statusEl.textContent = "";
     statusEl.className = "admin-card-status";
+
+    if (nameDisplayEl) {
+      nameDisplayEl.textContent = file.name;
+    }
   });
 
   cancelBtn.addEventListener("click", function () {
@@ -254,6 +267,10 @@ function setupImagePreview(fileInput, imgEl, pendingBadge, cancelBtn, statusEl) 
     cancelBtn.hidden = true;
     statusEl.textContent = "";
     statusEl.className = "admin-card-status";
+
+    if (nameDisplayEl) {
+      nameDisplayEl.textContent = "No file selected";
+    }
   });
 
   return {
@@ -265,34 +282,75 @@ function setupImagePreview(fileInput, imgEl, pendingBadge, cancelBtn, statusEl) 
   };
 }
 
+// Lightweight filename readout for one-off file inputs that don't use the
+// full preview/cancel UI above (e.g. the "Add New Product" form).
+function wireFileNameDisplay(fileInput, nameDisplayEl, fallbackText) {
+  if (!fileInput || !nameDisplayEl) {
+    return;
+  }
+
+  fileInput.addEventListener("change", function () {
+    const file = fileInput.files && fileInput.files[0];
+    nameDisplayEl.textContent = file ? file.name : (fallbackText || "No file selected");
+  });
+}
+
+// Turns a product name into a URL/DB-safe, guaranteed-unique key, e.g.
+// "Custom Dog Mug!" -> "custom-dog-mug-m4f2k1". The random suffix means two
+// products can share the same name without a primary-key collision.
+function slugifyProductKey(name) {
+  const base = String(name || "product")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-+|-+$)/g, "") || "product";
+
+  return base + "-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
 function renderProductCard(client, row) {
   const node = adminProductTemplate.content.cloneNode(true);
+  const cardEl = node.querySelector(".admin-product-card");
   const img = node.querySelector(".admin-product-image img");
   const pendingBadge = node.querySelector(".admin-pending-badge");
-  const nameEl = node.querySelector(".admin-product-name");
+  const nameInput = node.querySelector(".admin-name-input");
   const priceInput = node.querySelector(".admin-price-input");
+  const descInput = node.querySelector(".admin-desc-input");
   const fileInput = node.querySelector(".admin-file-input");
+  const fileNameEl = node.querySelector(".admin-file-upload-name");
   const saveBtn = node.querySelector(".admin-save-btn");
   const cancelBtn = node.querySelector(".admin-cancel-btn");
+  const deleteBtn = node.querySelector(".admin-delete-btn");
   const statusEl = node.querySelector(".admin-card-status");
 
   img.src = row.image_url || "";
   img.alt = row.name || row.key;
-  nameEl.textContent = row.name || row.key;
+  nameInput.value = row.name || "";
   priceInput.value =
     row.price !== null && row.price !== undefined ? row.price : "";
+  descInput.value = row.description || "";
 
-  const preview = setupImagePreview(fileInput, img, pendingBadge, cancelBtn, statusEl);
+  const preview = setupImagePreview(fileInput, img, pendingBadge, cancelBtn, statusEl, fileNameEl);
 
   saveBtn.addEventListener("click", function () {
-    saveProduct(client, row.key, priceInput, fileInput, saveBtn, statusEl, img, preview);
+    saveProduct(client, row.key, nameInput, priceInput, descInput, fileInput, saveBtn, statusEl, img, preview);
+  });
+
+  deleteBtn.addEventListener("click", function () {
+    deleteProduct(client, row.key, row.name, cardEl, deleteBtn, statusEl);
   });
 
   adminProductGrid.appendChild(node);
 }
 
-async function saveProduct(client, key, priceInput, fileInput, saveBtn, statusEl, imgEl, preview) {
+async function saveProduct(client, key, nameInput, priceInput, descInput, fileInput, saveBtn, statusEl, imgEl, preview) {
+  const newName = nameInput.value.trim();
   const newPrice = parseFloat(priceInput.value);
+
+  if (!newName) {
+    statusEl.textContent = "Enter a product name.";
+    statusEl.className = "admin-card-status is-error";
+    return;
+  }
 
   if (Number.isNaN(newPrice) || newPrice < 0) {
     statusEl.textContent = "Enter a valid price.";
@@ -306,7 +364,9 @@ async function saveProduct(client, key, priceInput, fileInput, saveBtn, statusEl
 
   try {
     const updatePayload = {
+      name: newName,
       price: newPrice,
+      description: descInput.value.trim(),
       updated_at: new Date().toISOString()
     };
 
@@ -354,6 +414,173 @@ async function saveProduct(client, key, priceInput, fileInput, saveBtn, statusEl
   } finally {
     saveBtn.disabled = false;
   }
+}
+
+async function deleteProduct(client, key, name, cardEl, deleteBtn, statusEl) {
+  const confirmed = window.confirm(
+    "Remove \"" + (name || key) + "\" from the website? This can't be undone."
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  deleteBtn.disabled = true;
+  statusEl.textContent = "Deleting...";
+  statusEl.className = "admin-card-status";
+
+  try {
+    const { error } = await client
+      .from(SUPABASE_PRODUCTS_TABLE)
+      .delete()
+      .eq("key", key);
+
+    if (error) {
+      throw error;
+    }
+
+    if (cardEl && cardEl.parentNode) {
+      cardEl.parentNode.removeChild(cardEl);
+    }
+
+    if (adminProductGrid && !adminProductGrid.querySelector(".admin-product-card")) {
+      setDashboardStatus(
+        "No products yet. Use \"+ Add New Product\" above to add one.",
+        false
+      );
+    }
+  } catch (err) {
+    console.error("Delete failed:", err);
+    statusEl.textContent = "Delete failed: " + (err.message || "unknown error");
+    statusEl.className = "admin-card-status is-error";
+    deleteBtn.disabled = false;
+  }
+}
+
+let addProductFormConnected = false;
+
+function connectAddProductForm(client) {
+  if (!addProductForm || !addProductToggleBtn) {
+    return;
+  }
+
+  // enterDashboard() (and therefore this function) can run more than once
+  // per page load if the owner logs out and back in -- guard against
+  // re-binding the same listeners twice (the Supabase client itself is a
+  // cached singleton, so the one captured below stays valid either way).
+  if (addProductFormConnected) {
+    return;
+  }
+  addProductFormConnected = true;
+
+  const photoNameEl = addProductForm.querySelector(".admin-file-upload-name");
+  wireFileNameDisplay(newProductPhoto, photoNameEl, "No file selected");
+
+  function resetAddProductForm() {
+    addProductForm.reset();
+    if (photoNameEl) {
+      photoNameEl.textContent = "No file selected";
+    }
+    setSettingsMessage(addProductStatus, "", false);
+  }
+
+  addProductToggleBtn.addEventListener("click", function () {
+    const isHidden = addProductForm.hidden;
+    addProductForm.hidden = !isHidden;
+
+    if (!isHidden) {
+      resetAddProductForm();
+    } else if (newProductName) {
+      newProductName.focus();
+    }
+  });
+
+  if (addProductCancelBtn) {
+    addProductCancelBtn.addEventListener("click", function () {
+      addProductForm.hidden = true;
+      resetAddProductForm();
+    });
+  }
+
+  addProductForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    const name = newProductName.value.trim();
+    const price = parseFloat(newProductPrice.value);
+    const description = newProductDescription.value.trim();
+    const file = newProductPhoto.files && newProductPhoto.files[0];
+    const submitBtn = addProductForm.querySelector('button[type="submit"]');
+
+    if (!name) {
+      setSettingsMessage(addProductStatus, "Enter a product name.", true);
+      return;
+    }
+
+    if (Number.isNaN(price) || price < 0) {
+      setSettingsMessage(addProductStatus, "Enter a valid price.", true);
+      return;
+    }
+
+    if (!file) {
+      setSettingsMessage(addProductStatus, "Choose a product photo.", true);
+      return;
+    }
+
+    if (submitBtn) submitBtn.disabled = true;
+    setSettingsMessage(addProductStatus, "Adding product...", false);
+
+    try {
+      const key = slugifyProductKey(name);
+      const ext = file.name.split(".").pop();
+      const path = key + "-" + Date.now() + "." + ext;
+
+      const { error: uploadError } = await client.storage
+        .from(SUPABASE_PRODUCTS_BUCKET)
+        .upload(path, file, { upsert: true });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: publicUrlData } = client.storage
+        .from(SUPABASE_PRODUCTS_BUCKET)
+        .getPublicUrl(path);
+
+      const imageUrl = publicUrlData && publicUrlData.publicUrl ? publicUrlData.publicUrl : "";
+
+      const newRow = {
+        key: key,
+        name: name,
+        price: price,
+        image_url: imageUrl,
+        description: description,
+        sort_order: Date.now()
+      };
+
+      const { error: insertError } = await client
+        .from(SUPABASE_PRODUCTS_TABLE)
+        .insert(newRow);
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      renderProductCard(client, newRow);
+      setDashboardStatus("", false);
+
+      addProductForm.hidden = true;
+      resetAddProductForm();
+    } catch (err) {
+      console.error("Add product failed:", err);
+      setSettingsMessage(
+        addProductStatus,
+        "Could not add product: " + (err.message || "unknown error"),
+        true
+      );
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  });
 }
 
 function setStatusEl(el, message, isError) {
@@ -561,6 +788,7 @@ function renderAssetCard(client, row, targetGrid) {
   const pendingBadge = node.querySelector(".admin-pending-badge");
   const nameEl = node.querySelector(".admin-product-name");
   const fileInput = node.querySelector(".admin-file-input");
+  const fileNameEl = node.querySelector(".admin-file-upload-name");
   const saveBtn = node.querySelector(".admin-save-btn");
   const cancelBtn = node.querySelector(".admin-cancel-btn");
   const statusEl = node.querySelector(".admin-card-status");
@@ -571,7 +799,7 @@ function renderAssetCard(client, row, targetGrid) {
   img.alt = label;
   nameEl.textContent = label;
 
-  const preview = setupImagePreview(fileInput, img, pendingBadge, cancelBtn, statusEl);
+  const preview = setupImagePreview(fileInput, img, pendingBadge, cancelBtn, statusEl, fileNameEl);
 
   saveBtn.addEventListener("click", function () {
     saveAsset(client, row.key, fileInput, saveBtn, statusEl, img, preview);

@@ -38,17 +38,154 @@ function money(value) {
 }
 
 /* ========================================================================
- * LIVE PRODUCT DATA (price + photo) FROM SUPABASE
+ * PRODUCT CATALOG RENDERING
  * ------------------------------------------------------------------------
- * The owner edits price/photo from admin.html, which writes to the
- * "products" table in Supabase. On every page load the storefront reads
- * that table here and overwrites the card's displayed price/image for any
- * row it finds a match for (matched by the card's data-product-key, e.g.
- * "tumbler40"). If Supabase isn't configured yet, or the fetch fails for
- * any reason, this quietly does nothing and the page keeps showing its
- * built-in hardcoded prices/photos -- the storefront never breaks.
+ * The product grid is rendered entirely from JavaScript so the owner can
+ * add, rename, reprice, or remove products from admin.html without ever
+ * touching this file or index.html. DEFAULT_PRODUCTS below is the
+ * fallback catalog used instantly on page load (and whenever Supabase
+ * isn't configured or the fetch fails), so the storefront never shows a
+ * blank grid or breaks. loadLiveProducts() then asks Supabase's
+ * "products" table for the real, owner-managed catalog and -- if it
+ * answers -- re-renders the grid with that data instead.
  * ====================================================================== */
-async function loadLiveProductData() {
+const DEFAULT_PRODUCTS = [
+  {
+    key: "frostedBeer",
+    name: "Frosted Beer 16oz",
+    price: 20,
+    image_url: "frosted-beer-16oz.jpg",
+    description:
+      "A personalized frosted beer glass for gifts, events, or premium drinkware branding."
+  },
+  {
+    key: "ornament",
+    name: "Ceramic Ornaments",
+    price: 6,
+    image_url: "ornament-1.jpg",
+    description: "Holiday or souvenir ornaments with four swappable design images."
+  },
+  {
+    key: "tshirtFront",
+    name: "Tshirt - Front Only",
+    price: 20,
+    image_url: "tshirt-front.jpg",
+    description: "Clean front-print shirt for everyday wear, teams, and promo use."
+  },
+  {
+    key: "tshirtFrontBack",
+    name: "Tshirt - Front and Back",
+    price: 24,
+    image_url: "tshirt-front-back.jpg",
+    description: "Full custom shirt with front and back printing."
+  },
+  {
+    key: "tumbler40",
+    name: "40oz Sublimation White Travel Tumbler",
+    price: 40,
+    image_url: "40oz-sublimation-white-tumbler.jpg",
+    description: "Large travel tumbler with premium sublimation finish."
+  },
+  {
+    key: "pickleballCover",
+    name: "Neoprene Cover for Pickleball Paddle",
+    price: 15,
+    image_url: "pickleball-paddle-cover.jpg",
+    description: "Protective neoprene cover for pickleball players."
+  },
+  {
+    key: "fabricNotebook",
+    name: "Fabric Notebook",
+    price: 20,
+    image_url: "fabric-notebook.jpg",
+    description: "Elegant notebook with a fabric cover."
+  },
+  {
+    key: "steelTumbler",
+    name: "Stainless Steel White Tumbler",
+    price: 25,
+    image_url: "stainless-steel-white-tumbler.jpg",
+    description: "Classic white tumbler for clean custom designs."
+  }
+];
+
+function renderProductGrid(products) {
+  const grid = document.getElementById("productGrid");
+  const template = document.getElementById("productCardTemplate");
+  const noResults = document.getElementById("noResults");
+
+  if (!grid || !template || !Array.isArray(products)) {
+    return;
+  }
+
+  grid.innerHTML = "";
+
+  products.forEach(function (product) {
+    if (!product || !product.key || !product.name) {
+      return;
+    }
+
+    const card = template.content.firstElementChild.cloneNode(true);
+    const img = card.querySelector("img");
+    const nameEl = card.querySelector("h3");
+    const priceEl = card.querySelector(".price");
+    const descEl = card.querySelector(".desc");
+    const customizeBtn = card.querySelector(".customize-btn");
+    const ornamentActions = card.querySelector(".ornament-actions");
+    const numericPrice = Number(product.price) || 0;
+
+    if (img) {
+      img.src = product.image_url || "";
+      img.alt = product.name + " product image";
+    }
+
+    if (nameEl) {
+      nameEl.textContent = product.name;
+    }
+
+    if (priceEl) {
+      priceEl.textContent = Number.isInteger(numericPrice)
+        ? "CAD " + numericPrice
+        : money(numericPrice);
+    }
+
+    if (descEl) {
+      descEl.textContent = product.description || "";
+    }
+
+    if (customizeBtn) {
+      customizeBtn.dataset.productKey = product.key;
+      customizeBtn.dataset.productName = product.name;
+      customizeBtn.dataset.productPrice = String(numericPrice);
+    }
+
+    // "Ceramic Ornaments" is special-cased with 4 swappable "Look" buttons
+    // tied to the ornamentImages array (see swapOrnament() above), on top
+    // of its normal product-grid card.
+    if (product.key === "ornament") {
+      if (img) {
+        img.id = "ornamentImage";
+        img.dataset.assetKey = "ornamentLook1";
+      }
+
+      if (ornamentActions) {
+        ornamentActions.hidden = false;
+      }
+    } else if (ornamentActions) {
+      // Every other product doesn't need the 4 "Look" buttons at all --
+      // remove the block entirely instead of just hiding it.
+      ornamentActions.remove();
+    }
+
+    grid.appendChild(card);
+  });
+
+  if (noResults) {
+    noResults.hidden = grid.querySelectorAll(".product-card").length !== 0;
+  }
+}
+
+async function loadLiveProducts() {
   const client = getSupabaseClient();
 
   if (!client) {
@@ -58,46 +195,21 @@ async function loadLiveProductData() {
   try {
     const { data, error } = await client
       .from(SUPABASE_PRODUCTS_TABLE)
-      .select("key, price, image_url");
+      .select("key, name, price, image_url, description, sort_order")
+      .order("sort_order", { ascending: true });
 
     if (error || !data) {
       console.warn("Could not load live product data:", error);
       return;
     }
 
-    data.forEach(function (row) {
-      if (!row || !row.key) {
-        return;
-      }
-
-      const trigger = document.querySelector(
-        '[data-product-key="' + row.key + '"]'
-      );
-      const card = trigger ? trigger.closest(".product-card") : null;
-
-      if (!card) {
-        return;
-      }
-
-      if (row.price !== null && row.price !== undefined && row.price !== "") {
-        const priceEl = card.querySelector(".price");
-        const numericPrice = Number(row.price);
-
-        if (priceEl && !Number.isNaN(numericPrice)) {
-          priceEl.textContent = Number.isInteger(numericPrice)
-            ? "CAD " + numericPrice
-            : money(numericPrice);
-        }
-      }
-
-      if (row.image_url) {
-        const imgEl = card.querySelector("img");
-
-        if (imgEl) {
-          imgEl.src = row.image_url;
-        }
-      }
-    });
+    // Supabase is reachable and configured, so it is the source of truth
+    // for the catalog -- including the owner adding or removing products
+    // from the admin dashboard. We re-render with whatever it returns
+    // (even zero rows, if the owner emptied the catalog) instead of
+    // silently keeping the hardcoded fallback list.
+    renderProductGrid(data);
+    connectScrollReveal(document.getElementById("productGrid"));
   } catch (err) {
     console.warn("Could not load live product data:", err);
   }
@@ -674,16 +786,30 @@ function buildOrderDetails() {
 }
 
 function connectCustomizeButtons() {
-  document.querySelectorAll(".customize-btn").forEach(function (button) {
-    button.addEventListener("click", function (event) {
-      event.preventDefault();
+  // Delegated on the grid container (not on individual buttons) so this
+  // keeps working no matter how many times renderProductGrid() rebuilds
+  // the cards inside it (e.g. once with defaults, then again with live
+  // Supabase data, then again whenever the owner adds/removes products).
+  const grid = document.getElementById("productGrid");
 
-      const key = button.dataset.productKey;
-      const name = button.dataset.productName;
-      const price = button.dataset.productPrice;
+  if (!grid) {
+    return;
+  }
 
-      openCustomizeModal(key, name, price);
-    });
+  grid.addEventListener("click", function (event) {
+    const button = event.target.closest(".customize-btn");
+
+    if (!button) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const key = button.dataset.productKey;
+    const name = button.dataset.productName;
+    const price = button.dataset.productPrice;
+
+    openCustomizeModal(key, name, price);
   });
 }
 
@@ -746,27 +872,24 @@ function connectCustomizeModal() {
 }
 
 function connectOrnamentButtons() {
-  const ornamentButtons = [
-    ["ornamentLook1", 0],
-    ["ornamentLook2", 1],
-    ["ornamentLook3", 2],
-    ["ornamentLook4", 3]
-  ];
+  // Delegated the same way as connectCustomizeButtons() above, since the
+  // "Ceramic Ornaments" card (and its 4 Look buttons) is rebuilt from
+  // scratch every time renderProductGrid() runs.
+  const grid = document.getElementById("productGrid");
 
-  ornamentButtons.forEach(function (buttonInfo) {
-    const buttonId = buttonInfo[0];
-    const index = buttonInfo[1];
+  if (!grid) {
+    return;
+  }
 
-    const button = document.getElementById(buttonId);
+  grid.addEventListener("click", function (event) {
+    const button = event.target.closest(".ornament-look-btn");
 
     if (!button) {
       return;
     }
 
-    button.addEventListener("click", function (event) {
-      event.preventDefault();
-      swapOrnament(index);
-    });
+    event.preventDefault();
+    swapOrnament(Number(button.dataset.lookIndex));
   });
 }
 
@@ -915,13 +1038,17 @@ function connectProductSearch() {
     return;
   }
 
-  const cards = Array.prototype.slice.call(
-    grid.querySelectorAll(".product-card")
-  );
-
   searchInput.addEventListener("input", function () {
     const query = searchInput.value.trim().toLowerCase();
     let visibleCount = 0;
+
+    // Queried fresh on every keystroke (rather than cached once at bind
+    // time) because the grid is rebuilt by renderProductGrid() after the
+    // live Supabase fetch resolves, and whenever the owner adds/removes
+    // products.
+    const cards = Array.prototype.slice.call(
+      grid.querySelectorAll(".product-card")
+    );
 
     cards.forEach(function (card) {
       const nameElement = card.querySelector("h3");
@@ -1070,8 +1197,13 @@ function sendOrderViaEmailjs(details) {
     });
 }
 
-function connectScrollReveal() {
-  const revealEls = document.querySelectorAll(".reveal");
+function connectScrollReveal(root) {
+  // Accepts an optional root element so a dynamic re-render of just the
+  // product grid (after the live Supabase fetch resolves) can re-arm
+  // reveal animations for its new cards only, without re-touching
+  // elements elsewhere on the page that were already revealed.
+  const scope = root || document;
+  const revealEls = scope.querySelectorAll(".reveal");
 
   if (!revealEls.length) {
     return;
@@ -1390,6 +1522,12 @@ function connectContactForm() {
 }
 
 document.addEventListener("DOMContentLoaded", function () {
+  // Paint the known-good fallback catalog immediately so the grid is never
+  // blank while we wait on the network, then connect interactions (which
+  // are delegated on the grid container, so they work before AND after
+  // the live re-render below).
+  renderProductGrid(DEFAULT_PRODUCTS);
+
   connectCustomizeButtons();
   connectCustomizeModal();
   connectOrnamentButtons();
@@ -1398,7 +1536,7 @@ document.addEventListener("DOMContentLoaded", function () {
   connectProductSearch();
   connectViewToggle();
   connectScrollReveal();
-  loadLiveProductData();
+  loadLiveProducts();
   loadLiveSiteAssets();
   connectFeedbackForm();
   connectContactForm();

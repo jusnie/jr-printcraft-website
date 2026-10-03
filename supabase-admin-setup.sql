@@ -35,21 +35,26 @@ create table if not exists public.products (
   name text not null,
   price numeric(10, 2) not null default 0,
   image_url text,
+  description text,
   sort_order int not null default 0,
   updated_at timestamptz not null default now()
 );
 
+-- Older projects that already ran this script before "description" existed
+-- won't error out -- this adds the column if it's missing.
+alter table public.products add column if not exists description text;
+
 -- 2) Seed with the current storefront data ------------------------------------
-insert into public.products (key, name, price, image_url, sort_order)
+insert into public.products (key, name, price, image_url, description, sort_order)
 values
-  ('frostedBeer',     'Frosted Beer 16oz',                       20, 'frosted-beer-16oz.jpg',              1),
-  ('ornament',        'Ceramic Ornaments',                        6, 'ornament-1.jpg',                     2),
-  ('tshirtFront',     'Tshirt - Front Only',                     20, 'tshirt-front.jpg',                   3),
-  ('tshirtFrontBack', 'Tshirt - Front and Back',                 24, 'tshirt-front-back.jpg',               4),
-  ('tumbler40',       '40oz Sublimation White Travel Tumbler',   40, '40oz-sublimation-white-tumbler.jpg',  5),
-  ('pickleballCover', 'Neoprene Cover for Pickleball Paddle',    15, 'pickleball-paddle-cover.jpg',         6),
-  ('fabricNotebook',  'Fabric Notebook',                          20, 'fabric-notebook.jpg',                 7),
-  ('steelTumbler',    'Stainless Steel White Tumbler',           25, 'stainless-steel-white-tumbler.jpg',  8)
+  ('frostedBeer',     'Frosted Beer 16oz',                       20, 'frosted-beer-16oz.jpg',              'A personalized frosted beer glass for gifts, events, or premium drinkware branding.', 1),
+  ('ornament',        'Ceramic Ornaments',                        6, 'ornament-1.jpg',                     'Holiday or souvenir ornaments with four swappable design images.', 2),
+  ('tshirtFront',     'Tshirt - Front Only',                     20, 'tshirt-front.jpg',                   'Clean front-print shirt for everyday wear, teams, and promo use.', 3),
+  ('tshirtFrontBack', 'Tshirt - Front and Back',                 24, 'tshirt-front-back.jpg',               'Full custom shirt with front and back printing.', 4),
+  ('tumbler40',       '40oz Sublimation White Travel Tumbler',   40, '40oz-sublimation-white-tumbler.jpg',  'Large travel tumbler with premium sublimation finish.', 5),
+  ('pickleballCover', 'Neoprene Cover for Pickleball Paddle',    15, 'pickleball-paddle-cover.jpg',         'Protective neoprene cover for pickleball players.', 6),
+  ('fabricNotebook',  'Fabric Notebook',                          20, 'fabric-notebook.jpg',                 'Elegant notebook with a fabric cover.', 7),
+  ('steelTumbler',    'Stainless Steel White Tumbler',           25, 'stainless-steel-white-tumbler.jpg',  'Classic white tumbler for clean custom designs.', 8)
 on conflict (key) do nothing;
 
 -- 3) Row Level Security --------------------------------------------------------
@@ -69,6 +74,22 @@ create policy "Admins can update products"
   to authenticated
   using (true)
   with check (true);
+
+-- Lets the admin dashboard ADD brand-new products to the catalog.
+drop policy if exists "Admins can add products" on public.products;
+create policy "Admins can add products"
+  on public.products
+  for insert
+  to authenticated
+  with check (true);
+
+-- Lets the admin dashboard REMOVE products from the catalog.
+drop policy if exists "Admins can delete products" on public.products;
+create policy "Admins can delete products"
+  on public.products
+  for delete
+  to authenticated
+  using (true);
 
 -- 4) Storage bucket for admin-uploaded product photos --------------------------
 insert into storage.buckets (id, name, public)
