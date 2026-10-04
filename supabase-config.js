@@ -57,6 +57,14 @@
  *         (this is just an FYI email to you whenever someone requests a
  *         password reset on admin.html -- the actual secure reset link is
  *         always sent by Supabase itself, not EmailJS)
+ *       - EMAILJS_FEEDBACK_REPLY_TEMPLATE_ID -> variables: {{customer_name}}
+ *         {{customer_email}} {{original_message}} {{reply_message}}
+ *         Sent when the owner clicks "Send Reply" on a feedback entry in
+ *         admin.html. IMPORTANT: unlike every other template here, this one
+ *         emails OUT to the customer, not in to you -- in the EmailJS
+ *         template's own settings (not this file), set "To Email" to
+ *         {{customer_email}} instead of your own address. See
+ *         email-templates/feedback-reply.html for ready-to-paste HTML.
  *
  * Until these are filled in, everything keeps working the old way:
  * the storefront shows its built-in hardcoded prices/photos, designs
@@ -84,6 +92,7 @@ const EMAILJS_ACCOUNT_2_PUBLIC_KEY = "n2siGwvWOa4o4N2a8";
 const EMAILJS_ACCOUNT_2_SERVICE_ID = "service_wdfomfq";
 const EMAILJS_FEEDBACK_TEMPLATE_ID = "template_e6f8qbn";
 const EMAILJS_RESET_NOTIFY_TEMPLATE_ID = "template_38q2z6b";
+const EMAILJS_FEEDBACK_REPLY_TEMPLATE_ID = "YOUR_FEEDBACK_REPLY_TEMPLATE_ID";
 
 function isSupabaseConfigured() {
   return (
@@ -121,6 +130,18 @@ function isResetNotifyConfigured() {
     EMAILJS_ACCOUNT_2_PUBLIC_KEY.indexOf("YOUR_") !== 0 &&
     EMAILJS_ACCOUNT_2_SERVICE_ID.indexOf("YOUR_") !== 0 &&
     EMAILJS_RESET_NOTIFY_TEMPLATE_ID.indexOf("YOUR_") !== 0
+  );
+}
+
+// Lets the owner reply to a customer's feedback straight from admin.html --
+// the reply email goes OUT to the customer (not in to the owner like the
+// other templates), so this EmailJS template's "To Email" setting must be
+// configured as {{customer_email}} -- see email-templates/feedback-reply.html.
+function isFeedbackReplyConfigured() {
+  return (
+    EMAILJS_ACCOUNT_2_PUBLIC_KEY.indexOf("YOUR_") !== 0 &&
+    EMAILJS_ACCOUNT_2_SERVICE_ID.indexOf("YOUR_") !== 0 &&
+    EMAILJS_FEEDBACK_REPLY_TEMPLATE_ID.indexOf("YOUR_") !== 0
   );
 }
 

@@ -34,6 +34,8 @@ const addProductStatus = document.getElementById("addProductStatus");
 const newProductName = document.getElementById("newProductName");
 const newProductPrice = document.getElementById("newProductPrice");
 const newProductDescription = document.getElementById("newProductDescription");
+const newProductSizeType = document.getElementById("newProductSizeType");
+const newProductSizeChecks = document.getElementById("newProductSizeChecks");
 const newProductPhoto = document.getElementById("newProductPhoto");
 const assetsStatus = document.getElementById("assetsStatus");
 const adminAssetGrid = document.getElementById("adminAssetGrid");
@@ -191,7 +193,7 @@ async function loadProducts(client) {
 
   const { data, error } = await client
     .from(SUPABASE_PRODUCTS_TABLE)
-    .select("key, name, price, image_url, description")
+    .select("key, name, price, image_url, description, size_type, sizes")
     .order("sort_order", { ascending: true });
 
   if (error) {
@@ -307,6 +309,112 @@ function slugifyProductKey(name) {
   return base + "-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
+// Fixed size option sets, kept identical to SIZE_OPTIONS_BY_TYPE in
+// script.js so the storefront's Customize modal and this admin UI always
+// agree on what "drinkware"/"apparel" sizes mean.
+const SIZE_OPTIONS_BY_TYPE = {
+  drinkware: ["12oz", "16oz", "22oz"],
+  apparel: ["Small", "Medium", "Large", "XL"]
+};
+
+// Fills a product card's ".admin-size-checkboxes" container with one
+// checkbox per fixed size for the given sizeType, checked according to
+// existingSizes (defaults every size to "available" the first time a type
+// is picked, e.g. when adding a new product or switching types).
+function renderSizeCheckboxes(container, sizeType, existingSizes) {
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML = "";
+
+  const labels = SIZE_OPTIONS_BY_TYPE[sizeType];
+
+  if (!labels) {
+    container.hidden = true;
+    return;
+  }
+
+  const existingByLabel = {};
+  (existingSizes || []).forEach(function (size) {
+    if (size && size.label) {
+      existingByLabel[size.label] = size.available !== false;
+    }
+  });
+
+  const headingEl = document.createElement("span");
+  headingEl.className = "admin-size-checkboxes-label";
+  headingEl.textContent = "Available sizes (untick to mark as not available)";
+  container.appendChild(headingEl);
+
+  labels.forEach(function (label) {
+    const isAvailable = Object.prototype.hasOwnProperty.call(existingByLabel, label)
+      ? existingByLabel[label]
+      : true;
+
+    const wrapper = document.createElement("label");
+    wrapper.className = "admin-size-checkbox" + (isAvailable ? "" : " is-unavailable");
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = isAvailable;
+    checkbox.dataset.sizeLabel = label;
+    checkbox.addEventListener("change", function () {
+      wrapper.classList.toggle("is-unavailable", !checkbox.checked);
+    });
+
+    wrapper.appendChild(checkbox);
+    wrapper.appendChild(document.createTextNode(label));
+    container.appendChild(wrapper);
+  });
+
+  container.hidden = false;
+}
+
+// Reads whatever renderSizeCheckboxes() built back out into the JSON shape
+// the "sizes" column expects: [{label, available}, ...].
+function readSizesFromCheckboxes(container) {
+  if (!container) {
+    return [];
+  }
+
+  return Array.prototype.map.call(
+    container.querySelectorAll("input[type=checkbox]"),
+    function (checkbox) {
+      return { label: checkbox.dataset.sizeLabel, available: checkbox.checked };
+    }
+  );
+}
+
+// Wires a "Size options" <select> (none/drinkware/apparel) to its
+// checkboxes container so picking a type immediately shows the matching
+// size checkboxes (or hides them for "none").
+function connectSizeTypeSelect(selectEl, checkboxContainer, initialSizeType, initialSizes) {
+  if (!selectEl) {
+    return;
+  }
+
+  selectEl.value = initialSizeType || "none";
+
+  if (selectEl.value === "none") {
+    checkboxContainer.hidden = true;
+    checkboxContainer.innerHTML = "";
+  } else {
+    renderSizeCheckboxes(checkboxContainer, selectEl.value, initialSizes);
+  }
+
+  selectEl.addEventListener("change", function () {
+    if (selectEl.value === "none") {
+      checkboxContainer.hidden = true;
+      checkboxContainer.innerHTML = "";
+    } else {
+      // Switching type starts every size fresh/available rather than
+      // carrying over availability from a different size set.
+      renderSizeCheckboxes(checkboxContainer, selectEl.value, []);
+    }
+  });
+}
+
 function renderProductCard(client, row) {
   const node = adminProductTemplate.content.cloneNode(true);
   const cardEl = node.querySelector(".admin-product-card");
@@ -315,6 +423,8 @@ function renderProductCard(client, row) {
   const nameInput = node.querySelector(".admin-name-input");
   const priceInput = node.querySelector(".admin-price-input");
   const descInput = node.querySelector(".admin-desc-input");
+  const sizeTypeSelect = node.querySelector(".admin-size-type-select");
+  const sizeCheckboxes = node.querySelector(".admin-size-checkboxes");
   const fileInput = node.querySelector(".admin-file-input");
   const fileNameEl = node.querySelector(".admin-file-upload-name");
   const saveBtn = node.querySelector(".admin-save-btn");
@@ -328,11 +438,12 @@ function renderProductCard(client, row) {
   priceInput.value =
     row.price !== null && row.price !== undefined ? row.price : "";
   descInput.value = row.description || "";
+  connectSizeTypeSelect(sizeTypeSelect, sizeCheckboxes, row.size_type, row.sizes);
 
   const preview = setupImagePreview(fileInput, img, pendingBadge, cancelBtn, statusEl, fileNameEl);
 
   saveBtn.addEventListener("click", function () {
-    saveProduct(client, row.key, nameInput, priceInput, descInput, fileInput, saveBtn, statusEl, img, preview);
+    saveProduct(client, row.key, nameInput, priceInput, descInput, sizeTypeSelect, sizeCheckboxes, fileInput, saveBtn, statusEl, img, preview);
   });
 
   deleteBtn.addEventListener("click", function () {
@@ -342,7 +453,7 @@ function renderProductCard(client, row) {
   adminProductGrid.appendChild(node);
 }
 
-async function saveProduct(client, key, nameInput, priceInput, descInput, fileInput, saveBtn, statusEl, imgEl, preview) {
+async function saveProduct(client, key, nameInput, priceInput, descInput, sizeTypeSelect, sizeCheckboxes, fileInput, saveBtn, statusEl, imgEl, preview) {
   const newName = nameInput.value.trim();
   const newPrice = parseFloat(priceInput.value);
 
@@ -363,10 +474,13 @@ async function saveProduct(client, key, nameInput, priceInput, descInput, fileIn
   statusEl.className = "admin-card-status";
 
   try {
+    const sizeType = sizeTypeSelect ? sizeTypeSelect.value : "none";
     const updatePayload = {
       name: newName,
       price: newPrice,
       description: descInput.value.trim(),
+      size_type: sizeType,
+      sizes: sizeType === "none" ? [] : readSizesFromCheckboxes(sizeCheckboxes),
       updated_at: new Date().toISOString()
     };
 
@@ -475,11 +589,16 @@ function connectAddProductForm(client) {
 
   const photoNameEl = addProductForm.querySelector(".admin-file-upload-name");
   wireFileNameDisplay(newProductPhoto, photoNameEl, "No file selected");
+  connectSizeTypeSelect(newProductSizeType, newProductSizeChecks, "none", []);
 
   function resetAddProductForm() {
     addProductForm.reset();
     if (photoNameEl) {
       photoNameEl.textContent = "No file selected";
+    }
+    if (newProductSizeChecks) {
+      newProductSizeChecks.hidden = true;
+      newProductSizeChecks.innerHTML = "";
     }
     setSettingsMessage(addProductStatus, "", false);
   }
@@ -548,12 +667,16 @@ function connectAddProductForm(client) {
 
       const imageUrl = publicUrlData && publicUrlData.publicUrl ? publicUrlData.publicUrl : "";
 
+      const sizeType = newProductSizeType ? newProductSizeType.value : "none";
+
       const newRow = {
         key: key,
         name: name,
         price: price,
         image_url: imageUrl,
         description: description,
+        size_type: sizeType,
+        sizes: sizeType === "none" ? [] : readSizesFromCheckboxes(newProductSizeChecks),
         sort_order: Date.now()
       };
 
@@ -616,7 +739,7 @@ async function loadFeedback(client) {
 
   const { data, error } = await client
     .from(SUPABASE_FEEDBACK_TABLE)
-    .select("id, name, email, rating, message, is_read, created_at")
+    .select("id, name, email, rating, message, is_read, admin_reply, replied_at, created_at")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -650,6 +773,11 @@ function renderFeedbackItem(client, row) {
   const dateEl = node.querySelector(".admin-feedback-date");
   const readBtn = node.querySelector(".admin-feedback-read-btn");
   const deleteBtn = node.querySelector(".admin-feedback-delete-btn");
+  const prevReplyEl = node.querySelector(".admin-feedback-prev-reply");
+  const replyInput = node.querySelector(".admin-feedback-reply-input");
+  const replyBtn = node.querySelector(".admin-feedback-reply-btn");
+  const replyStatusEl = node.querySelector(".admin-feedback-reply-status");
+  const noEmailNote = node.querySelector(".admin-feedback-no-email-note");
 
   nameEl.textContent = row.name || "Anonymous";
   emailEl.textContent = row.email || "";
@@ -717,6 +845,117 @@ function renderFeedbackItem(client, row) {
       setFeedbackListStatus("No feedback submitted yet.", false);
     }
   });
+
+  function showPrevReply() {
+    if (!prevReplyEl) {
+      return;
+    }
+
+    if (!row.admin_reply) {
+      prevReplyEl.hidden = true;
+      return;
+    }
+
+    const repliedAt = row.replied_at ? new Date(row.replied_at).toLocaleString() : "";
+    prevReplyEl.hidden = false;
+    prevReplyEl.innerHTML = "";
+
+    const label = document.createElement("strong");
+    label.textContent = "Your reply" + (repliedAt ? " - " + repliedAt : "");
+    prevReplyEl.appendChild(label);
+    prevReplyEl.appendChild(document.createTextNode(row.admin_reply));
+  }
+
+  showPrevReply();
+
+  if (replyInput) {
+    replyInput.value = row.admin_reply || "";
+  }
+
+  function setReplyStatus(message, isError) {
+    if (!replyStatusEl) {
+      return;
+    }
+
+    replyStatusEl.textContent = message || "";
+    replyStatusEl.className =
+      "admin-card-status admin-feedback-reply-status" +
+      (message ? (isError ? " is-error" : " is-success") : "");
+  }
+
+  const canReply = Boolean(row.email);
+
+  if (noEmailNote) {
+    noEmailNote.hidden = canReply;
+  }
+
+  if (!canReply) {
+    if (replyInput) replyInput.disabled = true;
+    if (replyBtn) replyBtn.disabled = true;
+  } else if (replyBtn) {
+    replyBtn.addEventListener("click", async function () {
+      const replyText = replyInput ? replyInput.value.trim() : "";
+
+      if (!replyText) {
+        setReplyStatus("Write a reply first.", true);
+        return;
+      }
+
+      if (!isFeedbackReplyConfigured()) {
+        setReplyStatus(
+          "Reply emails aren't set up yet -- add EMAILJS_FEEDBACK_REPLY_TEMPLATE_ID in supabase-config.js (see email-templates/feedback-reply.html).",
+          true
+        );
+        return;
+      }
+
+      if (!window.emailjs) {
+        setReplyStatus("Email service failed to load. Check your connection and try again.", true);
+        return;
+      }
+
+      replyBtn.disabled = true;
+      setReplyStatus("Sending reply...", false);
+
+      try {
+        await window.emailjs.send(
+          EMAILJS_ACCOUNT_2_SERVICE_ID,
+          EMAILJS_FEEDBACK_REPLY_TEMPLATE_ID,
+          {
+            customer_name: row.name || "there",
+            customer_email: row.email,
+            original_message: row.message,
+            reply_message: replyText
+          },
+          { publicKey: EMAILJS_ACCOUNT_2_PUBLIC_KEY }
+        );
+
+        const repliedAtIso = new Date().toISOString();
+
+        const { error } = await client
+          .from(SUPABASE_FEEDBACK_TABLE)
+          .update({ admin_reply: replyText, replied_at: repliedAtIso })
+          .eq("id", row.id);
+
+        if (error) {
+          throw error;
+        }
+
+        row.admin_reply = replyText;
+        row.replied_at = repliedAtIso;
+        showPrevReply();
+        setReplyStatus("Reply sent!", false);
+      } catch (err) {
+        console.error("Send reply failed:", err);
+        setReplyStatus(
+          "Could not send reply: " + (err.message || err.text || "unknown error"),
+          true
+        );
+      } finally {
+        replyBtn.disabled = false;
+      }
+    });
+  }
 
   adminFeedbackList.appendChild(node);
 }

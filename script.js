@@ -49,65 +49,144 @@ function money(value) {
  * "products" table for the real, owner-managed catalog and -- if it
  * answers -- re-renders the grid with that data instead.
  * ====================================================================== */
+// Fixed size option sets a product can be configured with (set per-product
+// via size_type in Supabase / the admin dashboard's "Add Product" form).
+// "drinkware" covers beer glasses, tumblers, and mugs; "apparel" covers
+// shirts; "none" means no size selector at all (ornaments, notebooks, etc.).
+const SIZE_OPTIONS_BY_TYPE = {
+  drinkware: ["12oz", "16oz", "22oz"],
+  apparel: ["Small", "Medium", "Large", "XL"]
+};
+
 const DEFAULT_PRODUCTS = [
   {
     key: "frostedBeer",
-    name: "Frosted Beer 16oz",
+    name: "Frosted Beer",
     price: 20,
     image_url: "frosted-beer-16oz.jpg",
     description:
-      "A personalized frosted beer glass for gifts, events, or premium drinkware branding."
+      "A personalized frosted beer glass for gifts, events, or premium drinkware branding.",
+    size_type: "drinkware",
+    sizes: [
+      { label: "12oz", available: true },
+      { label: "16oz", available: false },
+      { label: "22oz", available: false }
+    ]
   },
   {
     key: "ornament",
     name: "Ceramic Ornaments",
     price: 6,
     image_url: "ornament-1.jpg",
-    description: "Holiday or souvenir ornaments with four swappable design images."
+    description: "Holiday or souvenir ornaments with four swappable design images.",
+    size_type: "none",
+    sizes: []
   },
   {
     key: "tshirtFront",
     name: "Tshirt - Front Only",
     price: 20,
     image_url: "tshirt-front.jpg",
-    description: "Clean front-print shirt for everyday wear, teams, and promo use."
+    description: "Clean front-print shirt for everyday wear, teams, and promo use.",
+    size_type: "apparel",
+    sizes: [
+      { label: "Small", available: true },
+      { label: "Medium", available: true },
+      { label: "Large", available: true },
+      { label: "XL", available: true }
+    ]
   },
   {
     key: "tshirtFrontBack",
     name: "Tshirt - Front and Back",
     price: 24,
     image_url: "tshirt-front-back.jpg",
-    description: "Full custom shirt with front and back printing."
+    description: "Full custom shirt with front and back printing.",
+    size_type: "apparel",
+    sizes: [
+      { label: "Small", available: true },
+      { label: "Medium", available: true },
+      { label: "Large", available: true },
+      { label: "XL", available: true }
+    ]
   },
   {
     key: "tumbler40",
-    name: "40oz Sublimation White Travel Tumbler",
+    name: "Sublimation White Travel Tumbler",
     price: 40,
     image_url: "40oz-sublimation-white-tumbler.jpg",
-    description: "Large travel tumbler with premium sublimation finish."
+    description: "Large travel tumbler with premium sublimation finish.",
+    size_type: "drinkware",
+    sizes: [
+      { label: "12oz", available: false },
+      { label: "16oz", available: false },
+      { label: "22oz", available: true }
+    ]
   },
   {
     key: "pickleballCover",
     name: "Neoprene Cover for Pickleball Paddle",
     price: 15,
     image_url: "pickleball-paddle-cover.jpg",
-    description: "Protective neoprene cover for pickleball players."
+    description: "Protective neoprene cover for pickleball players.",
+    size_type: "none",
+    sizes: []
   },
   {
     key: "fabricNotebook",
     name: "Fabric Notebook",
     price: 20,
     image_url: "fabric-notebook.jpg",
-    description: "Elegant notebook with a fabric cover."
+    description: "Elegant notebook with a fabric cover.",
+    size_type: "none",
+    sizes: []
   },
   {
     key: "steelTumbler",
     name: "Stainless Steel White Tumbler",
     price: 25,
     image_url: "stainless-steel-white-tumbler.jpg",
-    description: "Classic white tumbler for clean custom designs."
+    description: "Classic white tumbler for clean custom designs.",
+    size_type: "drinkware",
+    sizes: [
+      { label: "12oz", available: true },
+      { label: "16oz", available: true },
+      { label: "22oz", available: true }
+    ]
   }
+
 ];
+
+// Keyed lookup of the currently-rendered catalog, kept in sync by
+// renderProductGrid() every time it (re)builds the grid. openCustomizeModal()
+// reads from this to know which size options (if any) to offer, since the
+// customize buttons themselves only carry key/name/price in their dataset.
+let currentProductsByKey = {};
+
+// Supabase returns the "sizes" jsonb column already parsed into a JS array,
+// but this tolerates a raw JSON string too (e.g. if ever hand-edited in the
+// Supabase table editor) and always returns a clean, safe array.
+function normalizeSizes(sizes) {
+  let list = sizes;
+
+  if (typeof list === "string") {
+    try {
+      list = JSON.parse(list);
+    } catch (err) {
+      list = [];
+    }
+  }
+
+  if (!Array.isArray(list)) {
+    return [];
+  }
+
+  return list
+    .filter(function (item) { return item && item.label; })
+    .map(function (item) {
+      return { label: String(item.label), available: item.available !== false };
+    });
+}
 
 function renderProductGrid(products) {
   const grid = document.getElementById("productGrid");
@@ -119,13 +198,20 @@ function renderProductGrid(products) {
   }
 
   grid.innerHTML = "";
+  currentProductsByKey = {};
 
   products.forEach(function (product) {
     if (!product || !product.key || !product.name) {
       return;
     }
 
+    currentProductsByKey[product.key] = {
+      sizeType: product.size_type || "none",
+      sizes: normalizeSizes(product.sizes)
+    };
+
     const card = template.content.firstElementChild.cloneNode(true);
+
     const img = card.querySelector("img");
     const nameEl = card.querySelector("h3");
     const priceEl = card.querySelector(".price");
@@ -195,7 +281,7 @@ async function loadLiveProducts() {
   try {
     const { data, error } = await client
       .from(SUPABASE_PRODUCTS_TABLE)
-      .select("key, name, price, image_url, description, sort_order")
+      .select("key, name, price, image_url, description, size_type, sizes, sort_order")
       .order("sort_order", { ascending: true });
 
     if (error || !data) {
@@ -294,7 +380,6 @@ function openCustomizeModal(key, name, price) {
 
   const nameElement = document.getElementById("customizeProductName");
   const priceElement = document.getElementById("customizeProductPrice");
-  const sizeElement = document.getElementById("customizeSize");
   const colorElement = document.getElementById("customizeColor");
   const textElement = document.getElementById("customizeText");
   const notesElement = document.getElementById("customizeNotes");
@@ -309,9 +394,7 @@ function openCustomizeModal(key, name, price) {
     priceElement.textContent = money(price);
   }
 
-  if (sizeElement) {
-    sizeElement.selectedIndex = 0;
-  }
+  populateCustomizeSizeOptions(key);
 
   if (colorElement) {
     colorElement.selectedIndex = 0;
@@ -342,6 +425,60 @@ function openCustomizeModal(key, name, price) {
 
   updateCustomizeTotal();
   openModal("customizeModal");
+}
+
+// Builds the Customize modal's Size dropdown for whichever product was just
+// clicked, using that product's size_type/sizes from currentProductsByKey
+// (populated by renderProductGrid()). Products with size_type "none" hide
+// the Size field entirely. Sizes the owner has marked unavailable from the
+// admin dashboard still show in the list (so customers can see what's
+// normally offered) but are disabled and labeled "(Not Available)".
+function populateCustomizeSizeOptions(key) {
+  const sizeField = document.getElementById("customizeSizeField");
+  const sizeElement = document.getElementById("customizeSize");
+
+  if (!sizeElement) {
+    return;
+  }
+
+  const info = currentProductsByKey[key];
+  const sizeType = info ? info.sizeType : "none";
+
+  sizeElement.innerHTML = "";
+
+  if (!sizeType || sizeType === "none" || !SIZE_OPTIONS_BY_TYPE[sizeType]) {
+    if (sizeField) {
+      sizeField.hidden = true;
+    }
+    return;
+  }
+
+  const definedSizes = info.sizes && info.sizes.length
+    ? info.sizes
+    : SIZE_OPTIONS_BY_TYPE[sizeType].map(function (label) {
+        return { label: label, available: true };
+      });
+
+  let firstAvailableSet = false;
+
+  definedSizes.forEach(function (size) {
+    const option = document.createElement("option");
+    option.value = size.label;
+    option.textContent = size.available
+      ? size.label
+      : size.label + " (Not Available)";
+    option.disabled = !size.available;
+    sizeElement.appendChild(option);
+
+    if (size.available && !firstAvailableSet) {
+      option.selected = true;
+      firstAvailableSet = true;
+    }
+  });
+
+  if (sizeField) {
+    sizeField.hidden = false;
+  }
 }
 
 function resetUploadUI() {
@@ -561,9 +698,10 @@ function renderCart() {
                 Total: ${money(itemTotal)}
               </div>
 
+              ${item.size ? `
               <div class="summary-line">
                 Size: ${escapeHtml(item.size)}
-              </div>
+              </div>` : ""}
 
               <div class="summary-line">
                 Color: ${escapeHtml(item.color)}
@@ -735,17 +873,25 @@ function buildOrderDetails() {
           ? "Design Image: " + item.designImage
           : "Design Image: None";
 
-        return [
+        const lines = [
           (index + 1) + ". " + item.name,
           "Quantity: " + item.quantity,
-          "Price: " + money(item.price),
-          "Size: " + item.size,
+          "Price: " + money(item.price)
+        ];
+
+        if (item.size) {
+          lines.push("Size: " + item.size);
+        }
+
+        lines.push(
           "Color: " + item.color,
           "Custom text: " + (item.customText || "N/A"),
           "Notes: " + (item.notes || "N/A"),
           designLine,
           "Item total: " + money(item.price * item.quantity)
-        ].join("\n");
+        );
+
+        return lines.join("\n");
       })
       .join("\n\n");
   }
