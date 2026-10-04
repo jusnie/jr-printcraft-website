@@ -100,15 +100,15 @@
     <section class="scroll-showcase" id="showcase">
       <div class="marquee">
         <div class="marquee-track">
-          <img src="client1.jpg" alt="Client finished product 1" data-asset-key="gallery1">
-          <img src="client2.jpg" alt="Client finished product 2" data-asset-key="gallery2">
-          <img src="client3.jpg" alt="Client finished product 3" data-asset-key="gallery3">
-          <img src="client4.jpg" alt="Client finished product 4" data-asset-key="gallery4">
+          <img src="client1.jpg" alt="Client finished product 1" data-asset-key="gallery1" loading="lazy" decoding="async">
+          <img src="client2.jpg" alt="Client finished product 2" data-asset-key="gallery2" loading="lazy" decoding="async">
+          <img src="client3.jpg" alt="Client finished product 3" data-asset-key="gallery3" loading="lazy" decoding="async">
+          <img src="client4.jpg" alt="Client finished product 4" data-asset-key="gallery4" loading="lazy" decoding="async">
 
-          <img src="client1.jpg" alt="Client finished product 1 duplicate" data-asset-key="gallery1">
-          <img src="client2.jpg" alt="Client finished product 2 duplicate" data-asset-key="gallery2">
-          <img src="client3.jpg" alt="Client finished product 3 duplicate" data-asset-key="gallery3">
-          <img src="client4.jpg" alt="Client finished product 4 duplicate" data-asset-key="gallery4">
+          <img src="client1.jpg" alt="Client finished product 1 duplicate" data-asset-key="gallery1" loading="lazy" decoding="async">
+          <img src="client2.jpg" alt="Client finished product 2 duplicate" data-asset-key="gallery2" loading="lazy" decoding="async">
+          <img src="client3.jpg" alt="Client finished product 3 duplicate" data-asset-key="gallery3" loading="lazy" decoding="async">
+          <img src="client4.jpg" alt="Client finished product 4 duplicate" data-asset-key="gallery4" loading="lazy" decoding="async">
         </div>
       </div>
     </section>
@@ -171,7 +171,7 @@
 
       <template id="productCardTemplate">
         <article class="product-card reveal">
-          <img>
+          <img loading="lazy" decoding="async">
 
           <div class="product-body">
             <div class="product-top">
@@ -213,8 +213,8 @@
         </p>
       </div>
 
-      <div class="custom-layout">
-        <div class="custom-preview reveal">
+      <div class="custom-layout reveal">
+        <div class="custom-preview">
           <div class="section-head small-head">
             <span class="tag">Your Cart</span>
             <h2>Order summary</h2>
@@ -229,7 +229,15 @@
           </div>
         </div>
 
-        <form class="custom-form reveal" id="orderForm">
+        <div class="custom-divider"></div>
+
+        <form class="custom-form" id="orderForm">
+          <div class="section-head small-head">
+            <span class="tag">Your Details</span>
+            <h2>Send your order</h2>
+            <p>Confirm your details below to email us this order.</p>
+          </div>
+
           <label for="customerName">
             Your Name
             <input
@@ -376,37 +384,6 @@
         </a>
       </div>
 
-      <div class="contact-form-wrap reveal">
-        <div class="section-head small-head">
-          <span class="tag">Send a Message</span>
-          <h2>Prefer to type it out?</h2>
-          <p>Fill this out and it lands straight in our inbox.</p>
-        </div>
-
-        <form class="custom-form contact-form" id="contactForm" novalidate>
-          <div class="feedback-grid">
-            <label>
-              Your Name
-              <input type="text" id="contactName" name="name" placeholder="Your name" required autocomplete="name">
-            </label>
-
-            <label>
-              Your Email
-              <input type="email" id="contactEmail" name="email" placeholder="you@example.com" required autocomplete="email">
-            </label>
-          </div>
-
-          <label>
-            Message
-            <textarea id="contactMessage" name="message" rows="4" placeholder="How can we help?" required></textarea>
-          </label>
-
-          <p class="order-status" id="contactStatus" hidden></p>
-
-          <button type="submit" class="btn primary" id="contactSubmitBtn">Send Message</button>
-        </form>
-      </div>
-
       <div class="contact-info-grid">
         <div class="info-card reveal">
           <span class="info-icon">
@@ -503,6 +480,7 @@
         <div class="customize-modal-product">
           <strong id="customizeProductName">Product Name</strong>
           <span id="customizeProductPrice">CAD 0.00</span>
+          <p class="customize-modal-desc" id="customizeProductDesc"></p>
         </div>
 
         <form id="customizeForm">

@@ -204,7 +204,8 @@ function renderProductGrid(products) {
 
     currentProductsByKey[product.key] = {
       sizeType: product.size_type || "none",
-      sizes: normalizeSizes(product.sizes)
+      sizes: normalizeSizes(product.sizes),
+      description: product.description || ""
     };
 
     const card = template.content.firstElementChild.cloneNode(true);
@@ -338,12 +339,6 @@ async function loadLiveSiteAssets() {
         .forEach(function (el) {
           el.src = row.image_url;
         });
-
-      const lookIndex = ORNAMENT_LOOK_ASSET_KEYS.indexOf(row.key);
-
-      if (lookIndex !== -1) {
-        ornamentImages[lookIndex] = row.image_url;
-      }
     });
   } catch (err) {
     console.warn("Could not load live site assets:", err);
@@ -551,14 +546,18 @@ function swapOrnament(index) {
 }
 
 function openCustomizeModal(key, name, price) {
+  const productInfo = currentProductsByKey[key] || {};
+
   currentCustomizeProduct = {
     key: key,
     name: name,
-    price: Number(price)
+    price: Number(price),
+    description: productInfo.description || ""
   };
 
   const nameElement = document.getElementById("customizeProductName");
   const priceElement = document.getElementById("customizeProductPrice");
+  const descElement = document.getElementById("customizeProductDesc");
   const colorElement = document.getElementById("customizeColor");
   const textElement = document.getElementById("customizeText");
   const notesElement = document.getElementById("customizeNotes");
@@ -567,6 +566,11 @@ function openCustomizeModal(key, name, price) {
 
   if (nameElement) {
     nameElement.textContent = name;
+  }
+
+  if (descElement) {
+    descElement.textContent = currentCustomizeProduct.description;
+    descElement.hidden = !currentCustomizeProduct.description;
   }
 
   if (priceElement) {
@@ -819,6 +823,7 @@ function addCustomizeItemToCart() {
   cart.push({
     name: currentCustomizeProduct.name,
     price: currentCustomizeProduct.price,
+    description: currentCustomizeProduct.description || "",
     quantity: quantity,
     size: sizeElement ? sizeElement.value : "",
     design: designPicked,
@@ -916,6 +921,11 @@ function renderCart() {
           <div class="summary-top">
             <div>
               <strong>${escapeHtml(item.name)}</strong>
+
+              ${item.description ? `
+              <div class="summary-line summary-desc">
+                ${escapeHtml(item.description)}
+              </div>` : ""}
 
               <div class="summary-line">
                 Quantity: ${item.quantity}
@@ -1109,6 +1119,10 @@ function buildOrderDetails() {
           "Quantity: " + item.quantity,
           "Price: " + money(item.price)
         ];
+
+        if (item.description) {
+          lines.push("Description: " + item.description);
+        }
 
         if (item.size) {
           lines.push("Size: " + item.size);
@@ -1619,7 +1633,7 @@ function connectScrollReveal(root) {
     const parent = el.parentElement;
     const index = siblingCounts.get(parent) || 0;
     siblingCounts.set(parent, index + 1);
-    el.style.transitionDelay = Math.min(index, 6) * 80 + "ms";
+    el.style.transitionDelay = Math.min(index, 5) * 55 + "ms";
   });
 
   if (!("IntersectionObserver" in window)) {

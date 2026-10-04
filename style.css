@@ -1,6 +1,6 @@
 :root {
   --canvas: #f5f8fc;
-  --panel: rgba(255, 255, 255, 0.84);
+  --panel: rgba(255, 255, 255, 0.95);
   --line: rgba(150, 177, 208, 0.25);
   --ink: #172033;
   --ink-2: #5a6779;
@@ -21,8 +21,8 @@
 
 .reveal {
   opacity: 0;
-  transform: translateY(18px);
-  transition: opacity 0.6s var(--ease), transform 0.6s var(--ease);
+  transform: translateY(14px);
+  transition: opacity 0.4s var(--ease), transform 0.4s var(--ease);
 }
 
 .reveal.is-visible {
@@ -152,9 +152,8 @@ body::before {
   align-items: center;
   justify-content: space-between;
   padding: 0 18px;
-  background: rgba(245, 248, 252, 0.9);
+  background: rgba(245, 248, 252, 0.97);
   border-bottom: 1px solid var(--line);
-  backdrop-filter: blur(16px) saturate(120%);
 }
 
 .brand {
@@ -386,7 +385,6 @@ body::before {
   border: 1px solid var(--line);
   background: var(--panel);
   box-shadow: var(--shadow);
-  backdrop-filter: blur(12px);
 }
 
 .hero-card {
@@ -863,16 +861,24 @@ body::before {
 }
 
 .custom-layout {
-  display: grid;
-  grid-template-columns: 1fr 0.9fr;
-  align-items: start;
-  gap: 20px;
+  display: flex;
+  flex-direction: column;
+  max-width: 680px;
+  margin: 0 auto;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  border-radius: 24px;
+  overflow: hidden;
 }
 
 .custom-form,
 .custom-preview {
-  padding: 18px;
-  border-radius: 20px;
+  padding: 28px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
 }
 
 .custom-form {
@@ -881,12 +887,16 @@ body::before {
 }
 
 .custom-preview {
-  position: sticky;
-  top: calc(var(--bar-height) + 20px);
   display: flex;
   flex-direction: column;
-  min-height: 220px;
-  max-height: calc(100vh - var(--bar-height) - 40px);
+  min-height: 0;
+  max-height: none;
+}
+
+.custom-divider {
+  height: 1px;
+  margin: 0 28px;
+  background: var(--line);
 }
 
 .summary-list {
@@ -1035,9 +1045,10 @@ body::before {
 
 .customize-modal-product {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 4px 12px;
   margin-bottom: 18px;
   padding-bottom: 14px;
   border-bottom: 1px solid rgba(150, 177, 208, 0.35);
@@ -1052,6 +1063,18 @@ body::before {
   color: var(--accent);
   font-weight: 800;
   white-space: nowrap;
+}
+
+.customize-modal-desc {
+  flex-basis: 100%;
+  margin: 2px 0 0;
+  color: var(--ink-2);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.customize-modal-desc[hidden] {
+  display: none;
 }
 
 .modal-qty {
@@ -1215,6 +1238,11 @@ body::before {
   line-height: 1.5;
 }
 
+.summary-desc {
+  font-style: italic;
+  color: var(--ink-3);
+}
+
 .review-card {
   padding: 18px;
   border-radius: 20px;
@@ -1251,11 +1279,20 @@ body::before {
   padding-bottom: 40px;
 }
 
+.contact .section-head {
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
 .contact-buttons {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 12px;
-  margin: 18px 0 20px;
+  margin: 18px auto 28px;
+  max-width: 640px;
 }
 
 .icon-btn {
@@ -1273,15 +1310,6 @@ body::before {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: 14px;
-}
-
-.contact-form-wrap {
-  max-width: 620px;
-  margin: 8px 0 32px;
-}
-
-.contact-form-wrap .small-head {
-  margin-bottom: 16px;
 }
 
 .info-card {
@@ -1518,7 +1546,6 @@ body::before {
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.97);
   box-shadow: var(--shadow);
-  backdrop-filter: blur(10px);
   transform: translateY(140%);
   transition: transform 0.35s ease;
 }
@@ -1551,14 +1578,17 @@ body::before {
 }
 
 @media (max-width: 900px) {
-  .hero,
-  .custom-layout {
+  .hero {
     grid-template-columns: 1fr;
   }
 
+  .custom-form,
   .custom-preview {
-    position: static;
-    max-height: none;
+    padding: 20px;
+  }
+
+  .custom-divider {
+    margin: 0 20px;
   }
 
   .nav {
