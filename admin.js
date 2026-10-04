@@ -40,6 +40,15 @@ const newProductPhoto = document.getElementById("newProductPhoto");
 const assetsStatus = document.getElementById("assetsStatus");
 const adminAssetGrid = document.getElementById("adminAssetGrid");
 const adminAssetTemplate = document.getElementById("adminAssetTemplate");
+const ornamentDesignsStatus = document.getElementById("ornamentDesignsStatus");
+const adminOrnamentDesignGrid = document.getElementById("adminOrnamentDesignGrid");
+const adminOrnamentDesignTemplate = document.getElementById("adminOrnamentDesignTemplate");
+const addOrnamentDesignToggleBtn = document.getElementById("addOrnamentDesignToggleBtn");
+const addOrnamentDesignForm = document.getElementById("addOrnamentDesignForm");
+const addOrnamentDesignCancelBtn = document.getElementById("addOrnamentDesignCancelBtn");
+const addOrnamentDesignStatus = document.getElementById("addOrnamentDesignStatus");
+const newOrnamentDesignLabel = document.getElementById("newOrnamentDesignLabel");
+const newOrnamentDesignPhoto = document.getElementById("newOrnamentDesignPhoto");
 const feedbackListStatus = document.getElementById("feedbackListStatus");
 const adminFeedbackList = document.getElementById("adminFeedbackList");
 const feedbackItemTemplate = document.getElementById("feedbackItemTemplate");
@@ -50,11 +59,7 @@ const ASSET_LABELS = {
   gallery1: "Showcase Photo 1",
   gallery2: "Showcase Photo 2",
   gallery3: "Showcase Photo 3",
-  gallery4: "Showcase Photo 4",
-  ornamentLook1: "Ornament Design 1 (\"Look 1\")",
-  ornamentLook2: "Ornament Design 2 (\"Look 2\")",
-  ornamentLook3: "Ornament Design 3 (\"Look 3\")",
-  ornamentLook4: "Ornament Design 4 (\"Look 4\")"
+  gallery4: "Showcase Photo 4"
 };
 
 let currentUserEmail = "";
@@ -159,6 +164,8 @@ async function enterDashboard(client) {
   connectAddProductForm(client);
   await loadFeedback(client);
   await loadSiteAssets(client);
+  await loadOrnamentDesigns(client);
+  connectAddOrnamentDesignForm(client);
 }
 
 function setSettingsMessage(el, message, isError) {
@@ -725,6 +732,10 @@ function setAssetsStatus(message, isError) {
   setStatusEl(assetsStatus, message, isError);
 }
 
+function setOrnamentDesignsStatus(message, isError) {
+  setStatusEl(ornamentDesignsStatus, message, isError);
+}
+
 function setFeedbackListStatus(message, isError) {
   setStatusEl(feedbackListStatus, message, isError);
 }
@@ -1145,6 +1156,301 @@ async function saveAsset(client, key, fileInput, saveBtn, statusEl, imgEl, previ
   } finally {
     saveBtn.disabled = false;
   }
+}
+
+/* ========================================================================
+ * CERAMIC ORNAMENT DESIGNS (owner can add/rename/replace-photo/remove)
+ * ------------------------------------------------------------------------
+ * Unlike the fixed logo/hero/gallery rows above (always exactly those 6
+ * keys), these live in their own ornament_designs table with a normal
+ * auto-increment id, so the owner can add as many designs as they want or
+ * remove ones they no longer offer -- mirrors the product add/remove UI.
+ * Design photos are stored in the same "site-assets" Storage bucket used
+ * for branding/gallery photos (no separate bucket needed).
+ * ====================================================================== */
+async function loadOrnamentDesigns(client) {
+  if (!adminOrnamentDesignGrid) {
+    return;
+  }
+
+  setOrnamentDesignsStatus("Loading ornament designs...", false);
+  adminOrnamentDesignGrid.innerHTML = "";
+
+  const { data, error } = await client
+    .from(SUPABASE_ORNAMENT_DESIGNS_TABLE)
+    .select("id, label, image_url, sort_order")
+    .order("sort_order", { ascending: true });
+
+  if (error) {
+    setOrnamentDesignsStatus(
+      "Could not load ornament designs: " + error.message,
+      true
+    );
+    return;
+  }
+
+  if (!data || !data.length) {
+    setOrnamentDesignsStatus(
+      "No ornament designs yet. Use \"+ Add New Design\" above to add one.",
+      false
+    );
+    return;
+  }
+
+  setOrnamentDesignsStatus("", false);
+
+  data.forEach(function (row) {
+    renderOrnamentDesignCard(client, row);
+  });
+}
+
+function renderOrnamentDesignCard(client, row) {
+  if (!adminOrnamentDesignGrid || !adminOrnamentDesignTemplate) {
+    return;
+  }
+
+  const node = adminOrnamentDesignTemplate.content.cloneNode(true);
+  const cardEl = node.querySelector(".admin-product-card");
+  const img = node.querySelector(".admin-product-image img");
+  const pendingBadge = node.querySelector(".admin-pending-badge");
+  const nameInput = node.querySelector(".admin-name-input");
+  const fileInput = node.querySelector(".admin-file-input");
+  const fileNameEl = node.querySelector(".admin-file-upload-name");
+  const saveBtn = node.querySelector(".admin-save-btn");
+  const cancelBtn = node.querySelector(".admin-cancel-btn");
+  const deleteBtn = node.querySelector(".admin-delete-btn");
+  const statusEl = node.querySelector(".admin-card-status");
+
+  img.src = row.image_url || "";
+  img.alt = row.label || "Ornament design";
+  nameInput.value = row.label || "";
+
+  const preview = setupImagePreview(fileInput, img, pendingBadge, cancelBtn, statusEl, fileNameEl);
+
+  saveBtn.addEventListener("click", function () {
+    saveOrnamentDesign(client, row.id, nameInput, fileInput, saveBtn, statusEl, img, preview);
+  });
+
+  deleteBtn.addEventListener("click", function () {
+    deleteOrnamentDesign(client, row.id, row.label, cardEl, deleteBtn, statusEl);
+  });
+
+  adminOrnamentDesignGrid.appendChild(node);
+}
+
+async function saveOrnamentDesign(client, id, nameInput, fileInput, saveBtn, statusEl, imgEl, preview) {
+  const newLabel = nameInput.value.trim();
+
+  if (!newLabel) {
+    statusEl.textContent = "Enter a design name.";
+    statusEl.className = "admin-card-status is-error";
+    return;
+  }
+
+  saveBtn.disabled = true;
+  statusEl.textContent = "Saving...";
+  statusEl.className = "admin-card-status";
+
+  try {
+    const updatePayload = { label: newLabel };
+    const file = fileInput.files && fileInput.files[0];
+
+    if (file) {
+      const ext = file.name.split(".").pop();
+      const path = "ornament-design-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6) + "." + ext;
+
+      const { error: uploadError } = await client.storage
+        .from(SUPABASE_SITE_ASSETS_BUCKET)
+        .upload(path, file, { upsert: true });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: publicUrlData } = client.storage
+        .from(SUPABASE_SITE_ASSETS_BUCKET)
+        .getPublicUrl(path);
+
+      if (publicUrlData && publicUrlData.publicUrl) {
+        updatePayload.image_url = publicUrlData.publicUrl;
+        imgEl.src = publicUrlData.publicUrl;
+      }
+    }
+
+    const { error: updateError } = await client
+      .from(SUPABASE_ORNAMENT_DESIGNS_TABLE)
+      .update(updatePayload)
+      .eq("id", id);
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    fileInput.value = "";
+    preview.markSaved(imgEl.src);
+    statusEl.textContent = "Saved!";
+    statusEl.className = "admin-card-status is-success";
+  } catch (err) {
+    console.error("Save failed:", err);
+    statusEl.textContent = "Save failed: " + (err.message || "unknown error");
+    statusEl.className = "admin-card-status is-error";
+  } finally {
+    saveBtn.disabled = false;
+  }
+}
+
+async function deleteOrnamentDesign(client, id, label, cardEl, deleteBtn, statusEl) {
+  const confirmed = window.confirm(
+    "Remove the \"" + (label || "design") + "\" ornament design? This can't be undone."
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  deleteBtn.disabled = true;
+  statusEl.textContent = "Deleting...";
+  statusEl.className = "admin-card-status";
+
+  try {
+    const { error } = await client
+      .from(SUPABASE_ORNAMENT_DESIGNS_TABLE)
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      throw error;
+    }
+
+    if (cardEl && cardEl.parentNode) {
+      cardEl.parentNode.removeChild(cardEl);
+    }
+
+    if (adminOrnamentDesignGrid && !adminOrnamentDesignGrid.querySelector(".admin-product-card")) {
+      setOrnamentDesignsStatus(
+        "No ornament designs yet. Use \"+ Add New Design\" above to add one.",
+        false
+      );
+    }
+  } catch (err) {
+    console.error("Delete failed:", err);
+    statusEl.textContent = "Delete failed: " + (err.message || "unknown error");
+    statusEl.className = "admin-card-status is-error";
+    deleteBtn.disabled = false;
+  }
+}
+
+let addOrnamentDesignFormConnected = false;
+
+function connectAddOrnamentDesignForm(client) {
+  if (!addOrnamentDesignForm || !addOrnamentDesignToggleBtn) {
+    return;
+  }
+
+  if (addOrnamentDesignFormConnected) {
+    return;
+  }
+  addOrnamentDesignFormConnected = true;
+
+  const photoNameEl = addOrnamentDesignForm.querySelector(".admin-file-upload-name");
+  wireFileNameDisplay(newOrnamentDesignPhoto, photoNameEl, "No file selected");
+
+  function resetAddOrnamentDesignForm() {
+    addOrnamentDesignForm.reset();
+    if (photoNameEl) {
+      photoNameEl.textContent = "No file selected";
+    }
+    setSettingsMessage(addOrnamentDesignStatus, "", false);
+  }
+
+  addOrnamentDesignToggleBtn.addEventListener("click", function () {
+    const isHidden = addOrnamentDesignForm.hidden;
+    addOrnamentDesignForm.hidden = !isHidden;
+
+    if (!isHidden) {
+      resetAddOrnamentDesignForm();
+    } else if (newOrnamentDesignLabel) {
+      newOrnamentDesignLabel.focus();
+    }
+  });
+
+  if (addOrnamentDesignCancelBtn) {
+    addOrnamentDesignCancelBtn.addEventListener("click", function () {
+      addOrnamentDesignForm.hidden = true;
+      resetAddOrnamentDesignForm();
+    });
+  }
+
+  addOrnamentDesignForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    const label = newOrnamentDesignLabel.value.trim();
+    const file = newOrnamentDesignPhoto.files && newOrnamentDesignPhoto.files[0];
+    const submitBtn = addOrnamentDesignForm.querySelector('button[type="submit"]');
+
+    if (!label) {
+      setSettingsMessage(addOrnamentDesignStatus, "Enter a design name.", true);
+      return;
+    }
+
+    if (!file) {
+      setSettingsMessage(addOrnamentDesignStatus, "Choose a design photo.", true);
+      return;
+    }
+
+    if (submitBtn) submitBtn.disabled = true;
+    setSettingsMessage(addOrnamentDesignStatus, "Adding design...", false);
+
+    try {
+      const ext = file.name.split(".").pop();
+      const path = "ornament-design-" + Date.now() + "-" + Math.random().toString(36).slice(2, 6) + "." + ext;
+
+      const { error: uploadError } = await client.storage
+        .from(SUPABASE_SITE_ASSETS_BUCKET)
+        .upload(path, file, { upsert: true });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data: publicUrlData } = client.storage
+        .from(SUPABASE_SITE_ASSETS_BUCKET)
+        .getPublicUrl(path);
+
+      const imageUrl = publicUrlData && publicUrlData.publicUrl ? publicUrlData.publicUrl : "";
+
+      const newRow = {
+        label: label,
+        image_url: imageUrl,
+        sort_order: Date.now()
+      };
+
+      const { data: insertData, error: insertError } = await client
+        .from(SUPABASE_ORNAMENT_DESIGNS_TABLE)
+        .insert(newRow)
+        .select("id, label, image_url, sort_order")
+        .single();
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      renderOrnamentDesignCard(client, insertData || newRow);
+      setOrnamentDesignsStatus("", false);
+
+      addOrnamentDesignForm.hidden = true;
+      resetAddOrnamentDesignForm();
+    } catch (err) {
+      console.error("Add ornament design failed:", err);
+      setSettingsMessage(
+        addOrnamentDesignStatus,
+        "Could not add design: " + (err.message || "unknown error"),
+        true
+      );
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  });
 }
 
 document.addEventListener("DOMContentLoaded", function () {

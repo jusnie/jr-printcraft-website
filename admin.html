@@ -40,11 +40,11 @@
     <section class="admin-card setup-needed" id="setupNeeded" hidden>
       <h1>Finish setup first</h1>
       <p>
-        This admin dashboard needs Supabase connected before it can work.
-        Open <code>supabase-config.js</code> and fill in your
+        This admin dashboard needs your database connected before it can
+        work. Open <code>supabase-config.js</code> and fill in your
         <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code>, then run
         the SQL in <code>supabase-admin-setup.sql</code> once inside your
-        Supabase project's SQL Editor. Full steps are in the comments at the
+        project's SQL Editor. Full steps are in the comments at the
         top of <code>supabase-config.js</code>.
       </p>
     </section>
@@ -52,7 +52,7 @@
     <!-- Login -->
     <section class="admin-card login-card" id="loginSection" hidden>
       <h1>Owner Login</h1>
-      <p class="muted">Sign in with the admin account you created in Supabase.</p>
+      <p class="muted">Sign in with your admin account.</p>
 
       <form id="loginForm" class="auth-form" novalidate>
         <label for="loginEmail">Email</label>
@@ -181,15 +181,63 @@
       <div class="dashboard-head dashboard-head-secondary">
         <h1>Branding, Gallery &amp; Ornament Designs</h1>
         <p class="muted">
-          Update the logo, hero photo, the 4 showcase gallery photos, and the
-          4 Ceramic Ornament designs customers flip through using the
-          "Look 1 / 2 / 3 / 4" buttons. Choose a new photo, preview it, then save.
+          Update the logo, hero photo, and the 4 showcase gallery photos.
+          Choose a new photo, preview it, then save. Ceramic Ornament
+          designs (the shapes customers choose from) are managed just below
+          -- add, rename, or remove as many as you like.
         </p>
       </div>
 
       <p class="dashboard-status" id="assetsStatus" hidden></p>
 
       <div class="admin-product-grid" id="adminAssetGrid"></div>
+
+      <div class="dashboard-head dashboard-head-secondary">
+        <h2>Ceramic Ornament Designs</h2>
+        <p class="muted">
+          These are the shape options customers pick from when customizing a
+          Ceramic Ornament (e.g. Circle, Star, Snowflake, Heart). Add a new
+          design, rename or replace the photo of an existing one, or remove
+          one you no longer offer -- changes appear on the live site
+          immediately.
+        </p>
+        <button type="button" class="btn primary small" id="addOrnamentDesignToggleBtn">+ Add New Design</button>
+      </div>
+
+      <form class="admin-add-product-form" id="addOrnamentDesignForm" novalidate hidden>
+        <h3>New Ornament Design</h3>
+
+        <label class="admin-field">
+          <span>Design name</span>
+          <input type="text" id="newOrnamentDesignLabel" placeholder="e.g. Circle, Star, Snowflake, Heart" required>
+        </label>
+
+        <label class="admin-field">
+          <span>Design photo</span>
+          <span class="admin-file-upload">
+            <input type="file" accept="image/png, image/jpeg, image/webp" id="newOrnamentDesignPhoto" required>
+            <span class="admin-file-upload-btn">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 16V4M12 4l-4 4M12 4l4 4"></path>
+                <path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path>
+              </svg>
+              Choose Photo
+            </span>
+            <span class="admin-file-upload-name">No file selected</span>
+          </span>
+        </label>
+
+        <p class="form-error" id="addOrnamentDesignStatus" hidden></p>
+
+        <div class="admin-card-actions">
+          <button type="submit" class="btn primary small">Add Design</button>
+          <button type="button" class="btn ghost small" id="addOrnamentDesignCancelBtn">Cancel</button>
+        </div>
+      </form>
+
+      <p class="dashboard-status" id="ornamentDesignsStatus" hidden></p>
+
+      <div class="admin-product-grid" id="adminOrnamentDesignGrid"></div>
     </section>
 
   </main>
@@ -329,6 +377,45 @@
         <div class="admin-card-actions">
           <button type="button" class="btn primary small admin-save-btn">Save Changes</button>
           <button type="button" class="btn ghost small admin-cancel-btn" hidden>Cancel</button>
+          <span class="admin-card-status"></span>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <!-- Template for one Ceramic Ornament design option (cloned by admin.js) -->
+  <template id="adminOrnamentDesignTemplate">
+    <article class="admin-product-card">
+      <div class="admin-product-image">
+        <img alt="">
+        <span class="admin-pending-badge" hidden>Preview - not saved yet</span>
+      </div>
+
+      <div class="admin-product-body">
+        <label class="admin-field">
+          <span>Design name</span>
+          <input type="text" class="admin-name-input">
+        </label>
+
+        <label class="admin-field admin-file-field">
+          <span>Replace photo</span>
+          <span class="admin-file-upload">
+            <input type="file" accept="image/png, image/jpeg, image/webp" class="admin-file-input">
+            <span class="admin-file-upload-btn">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 16V4M12 4l-4 4M12 4l4 4"></path>
+                <path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"></path>
+              </svg>
+              Choose Photo
+            </span>
+            <span class="admin-file-upload-name">No file selected</span>
+          </span>
+        </label>
+
+        <div class="admin-card-actions">
+          <button type="button" class="btn primary small admin-save-btn">Save Changes</button>
+          <button type="button" class="btn ghost small admin-cancel-btn" hidden>Cancel</button>
+          <button type="button" class="btn ghost small danger admin-delete-btn">Delete</button>
           <span class="admin-card-status"></span>
         </div>
       </div>

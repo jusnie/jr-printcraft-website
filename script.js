@@ -8,27 +8,24 @@
 
 const OWNER_EMAIL = "jr.printcraftexpress@gmail.com";
 
-const ornamentImages = [
-  "ornament-1.jpg",
-  "ornament-2.jpg",
-  "ornament-3.jpg",
-  "ornament-4.jpg"
+// Fallback design list used instantly on page load (and whenever Supabase
+// isn't configured or the fetch fails) so the Ceramic Ornament card never
+// shows a blank/broken "Look" row. loadOrnamentDesigns() then asks
+// Supabase's "ornament_designs" table for the owner's real, fully
+// add/rename/remove-able design list and re-renders with that instead --
+// mirrors the DEFAULT_PRODUCTS / loadLiveProducts() pattern above.
+const DEFAULT_ORNAMENT_DESIGNS = [
+  { label: "Circle", image_url: "ornament-1.jpg" },
+  { label: "Star", image_url: "ornament-2.jpg" },
+  { label: "Snowflake", image_url: "ornament-3.jpg" },
+  { label: "Heart", image_url: "ornament-4.jpg" }
 ];
 
-// Maps ornamentImages array index -> the site_assets row key the admin
-// dashboard's "Ceramic Ornament Designs" section writes to. Keeping this in
-// sync means clicking "Look 1/2/3/4" always uses whatever design photo the
-// owner most recently uploaded, not the original hardcoded file.
-const ORNAMENT_LOOK_ASSET_KEYS = [
-  "ornamentLook1",
-  "ornamentLook2",
-  "ornamentLook3",
-  "ornamentLook4"
-];
-
+let ornamentDesigns = DEFAULT_ORNAMENT_DESIGNS.slice();
 
 let selectedDesignImage = "";
 let selectedDesignFileName = "";
+let selectedOrnamentDesignLabel = "";
 let currentCustomizeProduct = null;
 
 const cart = [];
@@ -78,7 +75,7 @@ const DEFAULT_PRODUCTS = [
     name: "Ceramic Ornaments",
     price: 6,
     image_url: "ornament-1.jpg",
-    description: "Holiday or souvenir ornaments with four swappable design images.",
+    description: "Holiday or souvenir ornaments with swappable design shapes to choose from.",
     size_type: "none",
     sizes: []
   },
@@ -245,17 +242,22 @@ function renderProductGrid(products) {
       customizeBtn.dataset.productPrice = String(numericPrice);
     }
 
-    // "Ceramic Ornaments" is special-cased with 4 swappable "Look" buttons
-    // tied to the ornamentImages array (see swapOrnament() above), on top
-    // of its normal product-grid card.
+    // "Ceramic Ornaments" is special-cased with swappable "Look" buttons --
+    // one per design in the owner-managed ornamentDesigns list (see
+    // renderOrnamentLookButtons()/swapOrnament() above), on top of its
+    // normal product-grid card.
     if (product.key === "ornament") {
       if (img) {
         img.id = "ornamentImage";
-        img.dataset.assetKey = "ornamentLook1";
+
+        if (ornamentDesigns.length) {
+          img.src = ornamentDesigns[0].image_url || img.src;
+        }
       }
 
       if (ornamentActions) {
         ornamentActions.hidden = false;
+        renderOrnamentLookButtons(ornamentActions);
       }
     } else if (ornamentActions) {
       // Every other product doesn't need the 4 "Look" buttons at all --
@@ -376,7 +378,7 @@ async function loadLiveReviews() {
   try {
     const { data, error } = await client
       .from(SUPABASE_REVIEWS_TABLE)
-      .select("id, name, rating, message, created_at")
+      .select("id, name, rating, message, created_at, masked_email")
       .order("created_at", { ascending: false })
       .limit(24);
 
@@ -400,6 +402,7 @@ async function loadLiveReviews() {
       const starsEl = card.querySelector(".stars");
       const messageEl = card.querySelector("p");
       const nameEl = card.querySelector("strong");
+      const maskedEmailEl = card.querySelector(".review-masked-email");
       const rating = Number(row.rating) || 0;
 
       if (starsEl) {
@@ -416,6 +419,19 @@ async function loadLiveReviews() {
         nameEl.textContent = "- " + (row.name || "Happy Customer");
       }
 
+      // The real email is never sent to the browser -- Supabase's
+      // published_reviews view already masks it (e.g. "ja**@example.com")
+      // before it ever leaves the database, via the mask_email() SQL
+      // function. We just display whatever masked string comes back.
+      if (maskedEmailEl) {
+        if (row.masked_email) {
+          maskedEmailEl.textContent = row.masked_email;
+          maskedEmailEl.hidden = false;
+        } else {
+          maskedEmailEl.hidden = true;
+        }
+      }
+
       grid.appendChild(card);
     });
 
@@ -429,6 +445,63 @@ async function loadLiveReviews() {
   }
 }
 
+/* ========================================================================
+ * LIVE CERAMIC ORNAMENT DESIGNS FROM SUPABASE
+ * ------------------------------------------------------------------------
+ * Same idea as loadLiveProducts() above: DEFAULT_ORNAMENT_DESIGNS renders
+ * instantly so the "Look" buttons never show blank/broken, then this asks
+ * Supabase's ornament_designs table for the owner's real, fully owner-
+ * managed list (added/renamed/removed from admin.html) and re-renders with
+ * that instead. Fails silently if Supabase isn't configured or empty.
+ * ====================================================================== */
+async function loadOrnamentDesigns() {
+  const client = getSupabaseClient();
+
+  if (!client) {
+    return;
+  }
+
+  try {
+    const { data, error } = await client
+      .from(SUPABASE_ORNAMENT_DESIGNS_TABLE)
+      .select("label, image_url")
+      .order("sort_order", { ascending: true });
+
+    if (error || !data || !data.length) {
+      console.warn("Could not load live ornament designs:", error);
+      return;
+    }
+
+    ornamentDesigns = data
+      .filter(function (row) { return row && row.label; })
+      .map(function (row) {
+        return { label: row.label, image_url: row.image_url || "" };
+      });
+
+    if (!ornamentDesigns.length) {
+      return;
+    }
+
+    document.querySelectorAll(".ornament-actions").forEach(function (container) {
+      renderOrnamentLookButtons(container);
+    });
+
+    const ornamentImageEl = document.getElementById("ornamentImage");
+
+    if (ornamentImageEl && ornamentDesigns[0]) {
+      ornamentImageEl.src = ornamentDesigns[0].image_url;
+    }
+
+    // If the customer already has the Customize modal open on the Ceramic
+    // Ornament product, refresh its Design dropdown with the live list too.
+    if (currentCustomizeProduct && currentCustomizeProduct.key === "ornament") {
+      populateCustomizeDesignOptions("ornament");
+    }
+  } catch (err) {
+    console.warn("Could not load live ornament designs:", err);
+  }
+}
+
 function escapeHtml(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
@@ -438,18 +511,43 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
-function swapOrnament(index) {
-  const image = document.getElementById("ornamentImage");
-
-  if (!image || !ornamentImages[index]) {
+// Builds one button per design in the ornamentDesigns list inside the given
+// ".ornament-actions" container (there's normally just one, on the Ceramic
+// Ornament product card, but this re-runs for every matching container so
+// a page with more than one never falls out of sync). Called whenever the
+// list is (re)rendered: the initial product-grid render, and again once
+// loadOrnamentDesigns() resolves with the owner's live list from Supabase.
+function renderOrnamentLookButtons(container) {
+  if (!container) {
     return;
   }
 
-  selectedDesignImage = ornamentImages[index];
-  selectedDesignFileName = ornamentImages[index].split("/").pop();
+  container.innerHTML = "";
+
+  ornamentDesigns.forEach(function (design, index) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "mini-btn ornament-look-btn";
+    button.dataset.lookIndex = String(index);
+    button.textContent = design.label || "Design " + (index + 1);
+    container.appendChild(button);
+  });
+}
+
+function swapOrnament(index) {
+  const image = document.getElementById("ornamentImage");
+  const design = ornamentDesigns[index];
+
+  if (!image || !design) {
+    return;
+  }
+
+  selectedDesignImage = design.image_url || "";
+  selectedDesignFileName = selectedDesignImage ? selectedDesignImage.split("/").pop() : "";
+  selectedOrnamentDesignLabel = design.label || "";
 
   image.src = selectedDesignImage;
-  image.alt = "Ceramic ornament image " + (index + 1);
+  image.alt = "Ceramic ornament image - " + (design.label || index + 1);
 }
 
 function openCustomizeModal(key, name, price) {
@@ -476,6 +574,7 @@ function openCustomizeModal(key, name, price) {
   }
 
   populateCustomizeSizeOptions(key);
+  populateCustomizeDesignOptions(key);
 
   if (colorElement) {
     colorElement.selectedIndex = 0;
@@ -500,6 +599,7 @@ function openCustomizeModal(key, name, price) {
   if (key !== "ornament") {
     selectedDesignImage = "";
     selectedDesignFileName = "";
+    selectedOrnamentDesignLabel = "";
   }
 
   resetUploadUI();
@@ -559,6 +659,49 @@ function populateCustomizeSizeOptions(key) {
 
   if (sizeField) {
     sizeField.hidden = false;
+  }
+}
+
+// Builds the Customize modal's "Ornament Design" dropdown -- ONLY shown for
+// the Ceramic Ornament product (key === "ornament"), letting the customer
+// pick which shape/design (e.g. Circle, Star, Snowflake, Heart, or however
+// many the owner has added from admin.html) they want for this order. Every
+// other product hides this field entirely.
+function populateCustomizeDesignOptions(key) {
+  const designField = document.getElementById("customizeDesignField");
+  const designElement = document.getElementById("customizeDesign");
+
+  if (!designElement) {
+    return;
+  }
+
+  if (key !== "ornament" || !ornamentDesigns.length) {
+    if (designField) {
+      designField.hidden = true;
+    }
+    designElement.innerHTML = "";
+    return;
+  }
+
+  designElement.innerHTML = "";
+
+  let preselectIndex = 0;
+
+  ornamentDesigns.forEach(function (design, index) {
+    const option = document.createElement("option");
+    option.value = design.label;
+    option.textContent = design.label;
+    designElement.appendChild(option);
+
+    if (selectedOrnamentDesignLabel && design.label === selectedOrnamentDesignLabel) {
+      preselectIndex = index;
+    }
+  });
+
+  designElement.selectedIndex = preselectIndex;
+
+  if (designField) {
+    designField.hidden = false;
   }
 }
 
@@ -657,6 +800,8 @@ function addCustomizeItemToCart() {
 
   const qtyElement = document.getElementById("customizeQty");
   const sizeElement = document.getElementById("customizeSize");
+  const designElement = document.getElementById("customizeDesign");
+  const designField = document.getElementById("customizeDesignField");
   const colorElement = document.getElementById("customizeColor");
   const textElement = document.getElementById("customizeText");
   const notesElement = document.getElementById("customizeNotes");
@@ -667,11 +812,16 @@ function addCustomizeItemToCart() {
     quantity = 1;
   }
 
+  const designPicked = designElement && designField && !designField.hidden
+    ? designElement.value
+    : "";
+
   cart.push({
     name: currentCustomizeProduct.name,
     price: currentCustomizeProduct.price,
     quantity: quantity,
     size: sizeElement ? sizeElement.value : "",
+    design: designPicked,
     color: colorElement ? colorElement.value : "",
     customText: textElement ? textElement.value : "",
     notes: notesElement ? notesElement.value : "",
@@ -962,6 +1112,10 @@ function buildOrderDetails() {
 
         if (item.size) {
           lines.push("Size: " + item.size);
+        }
+
+        if (item.design) {
+          lines.push("Design: " + item.design);
         }
 
         lines.push(
@@ -1787,6 +1941,7 @@ document.addEventListener("DOMContentLoaded", function () {
   loadLiveProducts();
   loadLiveSiteAssets();
   loadLiveReviews();
+  loadOrnamentDesigns();
   connectFeedbackForm();
   connectContactForm();
 

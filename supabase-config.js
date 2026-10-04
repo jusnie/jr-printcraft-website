@@ -23,7 +23,13 @@
  *        "Forgot password" email flow
  *     g) the public "Reviews" section on the storefront (View:
  *        SUPABASE_REVIEWS_TABLE) -- a read-only view of only the feedback
- *        entries the owner has toggled "Publish as review" in admin.html
+ *        entries the owner has toggled "Publish as review" in admin.html,
+ *        with the customer's email address masked (e.g. "ja**@example.com")
+ *        rather than ever exposed in full
+ *     h) storing the Ceramic Ornament design options (Table:
+ *        SUPABASE_ORNAMENT_DESIGNS_TABLE) -- shapes like "Circle" or "Star"
+ *        the owner can add, rename, or remove from admin.html, which
+ *        customers then pick from when customizing a Ceramic Ornament
  *
  *     Setup steps:
  *     - Create a free project at https://supabase.com
@@ -102,6 +108,12 @@ const SUPABASE_FEEDBACK_TABLE = "feedback";
 // non-sensitive columns (no email address) -- so the public storefront can
 // safely read it with the anon key.
 const SUPABASE_REVIEWS_TABLE = "published_reviews";
+
+// The Ceramic Ornament design options (shapes like "Circle"/"Star") the
+// owner manages from admin.html -- customers pick one of these when
+// customizing a Ceramic Ornament. A normal addable/removable table, unlike
+// the fixed logo/hero/gallery rows in SUPABASE_SITE_ASSETS_TABLE.
+const SUPABASE_ORNAMENT_DESIGNS_TABLE = "ornament_designs";
 
 // ---- EmailJS Account 1: orders (owner notification) + contact form -------
 const EMAILJS_ACCOUNT_1_PUBLIC_KEY = "RqKFWxsBxrbdt_hCY";

@@ -182,10 +182,10 @@
             <p class="desc"></p>
 
             <div class="product-actions ornament-actions" hidden>
-              <button type="button" class="mini-btn ornament-look-btn" data-look-index="0">Look 1</button>
-              <button type="button" class="mini-btn ornament-look-btn" data-look-index="1">Look 2</button>
-              <button type="button" class="mini-btn ornament-look-btn" data-look-index="2">Look 3</button>
-              <button type="button" class="mini-btn ornament-look-btn" data-look-index="3">Look 4</button>
+              <!-- One button per design is rendered here by script.js
+                   (renderOrnamentLookButtons), sourced from the owner's
+                   live ornament_designs list (e.g. Circle, Star,
+                   Snowflake, Heart -- or however many the owner has set up). -->
             </div>
 
             <div class="qty-box">
@@ -281,6 +281,7 @@
           <div class="stars"></div>
           <p></p>
           <strong></strong>
+          <span class="review-masked-email"></span>
         </div>
       </template>
     </section>
@@ -289,6 +290,7 @@
       <div class="section-head reveal">
         <span class="tag">Feedback</span>
         <h2>Tell us how we did.</h2>
+        <p class="feedback-tagline">Your feedback matters &mdash; we value our customers.</p>
         <p>Your feedback goes straight to the owner &mdash; good, bad, or just a suggestion.</p>
       </div>
 
@@ -507,6 +509,11 @@
           <label for="customizeSize" id="customizeSizeField">
             Size
             <select id="customizeSize"></select>
+          </label>
+
+          <label for="customizeDesign" id="customizeDesignField" hidden>
+            Ornament Design
+            <select id="customizeDesign"></select>
           </label>
 
           <label for="customizeColor">
