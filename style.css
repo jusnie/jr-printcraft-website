@@ -1227,6 +1227,13 @@ body::before {
   line-height: 1.7;
 }
 
+.reviews-empty {
+  text-align: center;
+  color: var(--ink-3);
+  font-style: italic;
+  padding: 24px 16px;
+}
+
 .contact {
   padding-bottom: 40px;
 }

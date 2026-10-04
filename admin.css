@@ -683,7 +683,33 @@ body {
 
 .admin-feedback-actions {
   display: flex;
+  align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-feedback-publish {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+
+.admin-feedback-publish input {
+  cursor: pointer;
+}
+
+.admin-feedback-publish.is-published {
+  border-color: var(--success);
+  background: var(--success-bg);
+  color: var(--success);
 }
 
 .admin-feedback-reply-block {

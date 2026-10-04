@@ -739,7 +739,7 @@ async function loadFeedback(client) {
 
   const { data, error } = await client
     .from(SUPABASE_FEEDBACK_TABLE)
-    .select("id, name, email, rating, message, is_read, admin_reply, replied_at, created_at")
+    .select("id, name, email, rating, message, is_read, is_published, admin_reply, replied_at, created_at")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -773,6 +773,8 @@ function renderFeedbackItem(client, row) {
   const dateEl = node.querySelector(".admin-feedback-date");
   const readBtn = node.querySelector(".admin-feedback-read-btn");
   const deleteBtn = node.querySelector(".admin-feedback-delete-btn");
+  const publishCheckbox = node.querySelector(".admin-feedback-publish-input");
+  const publishLabel = node.querySelector(".admin-feedback-publish");
   const prevReplyEl = node.querySelector(".admin-feedback-prev-reply");
   const replyInput = node.querySelector(".admin-feedback-reply-input");
   const replyBtn = node.querySelector(".admin-feedback-reply-btn");
@@ -820,6 +822,38 @@ function renderFeedbackItem(client, row) {
     row.is_read = nextState;
     applyReadState(nextState);
   });
+
+  if (publishCheckbox) {
+    publishCheckbox.checked = Boolean(row.is_published);
+
+    publishCheckbox.addEventListener("change", async function () {
+      const nextState = publishCheckbox.checked;
+      publishCheckbox.disabled = true;
+
+      const { error } = await client
+        .from(SUPABASE_FEEDBACK_TABLE)
+        .update({ is_published: nextState })
+        .eq("id", row.id);
+
+      publishCheckbox.disabled = false;
+
+      if (error) {
+        publishCheckbox.checked = !nextState;
+        setFeedbackListStatus("Could not update feedback: " + error.message, true);
+        return;
+      }
+
+      row.is_published = nextState;
+
+      if (publishLabel) {
+        publishLabel.classList.toggle("is-published", nextState);
+      }
+    });
+
+    if (publishLabel) {
+      publishLabel.classList.toggle("is-published", Boolean(row.is_published));
+    }
+  }
 
   deleteBtn.addEventListener("click", async function () {
     if (!window.confirm("Delete this feedback entry? This cannot be undone.")) {
@@ -919,7 +953,7 @@ function renderFeedbackItem(client, row) {
 
       try {
         await window.emailjs.send(
-          EMAILJS_ACCOUNT_2_SERVICE_ID,
+          EMAILJS_ACCOUNT_3_SERVICE_ID,
           EMAILJS_FEEDBACK_REPLY_TEMPLATE_ID,
           {
             customer_name: row.name || "there",
@@ -927,7 +961,7 @@ function renderFeedbackItem(client, row) {
             original_message: row.message,
             reply_message: replyText
           },
-          { publicKey: EMAILJS_ACCOUNT_2_PUBLIC_KEY }
+          { publicKey: EMAILJS_ACCOUNT_3_PUBLIC_KEY }
         );
 
         const repliedAtIso = new Date().toISOString();

@@ -269,31 +269,20 @@
         <h2>What customers say</h2>
       </div>
 
-      <div class="grid review-grid">
-        <div class="review-card reveal">
-          <div class="stars">★★★★★</div>
-          <p>
-            “The custom shirt quality was clean and the print looked professional.”
-          </p>
-          <strong>- Client A</strong>
-        </div>
+      <div class="grid review-grid" id="reviewsGrid"></div>
 
-        <div class="review-card reveal">
-          <div class="stars">★★★★★</div>
-          <p>
-            “Loved the ornament design options. The final result was beautiful.”
-          </p>
-          <strong>- Client B</strong>
-        </div>
+      <p class="reviews-empty" id="reviewsEmpty">
+        No reviews yet &mdash; be the first to share your experience! Leave feedback
+        below and we may feature it here.
+      </p>
 
+      <template id="reviewCardTemplate">
         <div class="review-card reveal">
-          <div class="stars">★★★★★</div>
-          <p>
-            “Great for gifts and business promo items.”
-          </p>
-          <strong>- Client C</strong>
+          <div class="stars"></div>
+          <p></p>
+          <strong></strong>
         </div>
-      </div>
+      </template>
     </section>
 
     <section class="section" id="feedback">

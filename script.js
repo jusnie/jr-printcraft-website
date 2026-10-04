@@ -348,6 +348,87 @@ async function loadLiveSiteAssets() {
   }
 }
 
+/* ========================================================================
+ * LIVE "REVIEWS" SECTION FROM SUPABASE
+ * ------------------------------------------------------------------------
+ * The Reviews section is populated from real customer feedback that the
+ * owner has approved (toggled "Publish as review" in admin.html) -- it
+ * reads the public.published_reviews view (SUPABASE_REVIEWS_TABLE), which
+ * only ever exposes approved rows and never includes an email address.
+ * If Supabase isn't configured, or there are no published reviews yet, the
+ * section falls back to the friendly "No reviews yet" message already in
+ * the page instead of an empty grid.
+ * ====================================================================== */
+async function loadLiveReviews() {
+  const grid = document.getElementById("reviewsGrid");
+  const template = document.getElementById("reviewCardTemplate");
+  const emptyMessage = document.getElementById("reviewsEmpty");
+  const client = getSupabaseClient();
+
+  if (!grid || !template) {
+    return;
+  }
+
+  if (!client) {
+    return;
+  }
+
+  try {
+    const { data, error } = await client
+      .from(SUPABASE_REVIEWS_TABLE)
+      .select("id, name, rating, message, created_at")
+      .order("created_at", { ascending: false })
+      .limit(24);
+
+    if (error) {
+      console.warn("Could not load live reviews:", error);
+      return;
+    }
+
+    if (!data || !data.length) {
+      return;
+    }
+
+    grid.innerHTML = "";
+
+    data.forEach(function (row) {
+      if (!row || !row.message) {
+        return;
+      }
+
+      const card = template.content.firstElementChild.cloneNode(true);
+      const starsEl = card.querySelector(".stars");
+      const messageEl = card.querySelector("p");
+      const nameEl = card.querySelector("strong");
+      const rating = Number(row.rating) || 0;
+
+      if (starsEl) {
+        starsEl.textContent = rating > 0
+          ? "★".repeat(Math.min(rating, 5)) + "☆".repeat(Math.max(5 - rating, 0))
+          : "★★★★★";
+      }
+
+      if (messageEl) {
+        messageEl.textContent = "\u201c" + row.message + "\u201d";
+      }
+
+      if (nameEl) {
+        nameEl.textContent = "- " + (row.name || "Happy Customer");
+      }
+
+      grid.appendChild(card);
+    });
+
+    if (emptyMessage) {
+      emptyMessage.hidden = true;
+    }
+
+    connectScrollReveal(grid);
+  } catch (err) {
+    console.warn("Could not load live reviews:", err);
+  }
+}
+
 function escapeHtml(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
@@ -1329,6 +1410,8 @@ function sendOrderViaEmailjs(details) {
       if (orderForm) {
         orderForm.reset();
       }
+
+      sendOrderAutoReplyEmail(templateParams);
     })
     .catch(function (error) {
       console.error("EmailJS send failed:", error);
@@ -1340,6 +1423,25 @@ function sendOrderViaEmailjs(details) {
       if (sendOrderBtn) {
         sendOrderBtn.disabled = cart.length === 0;
       }
+    });
+}
+
+// Sends the customer their own "order received" confirmation email (Account
+// 3), separate from the owner notification email above (Account 1). This is
+// best-effort only: it never blocks or changes the success/error message
+// shown to the customer, since the owner notification succeeding is what
+// actually matters operationally -- a failure here is just logged.
+function sendOrderAutoReplyEmail(templateParams) {
+  if (!isOrderAutoReplyConfigured() || !window.emailjs || !templateParams.customer_email) {
+    return;
+  }
+
+  window.emailjs
+    .send(EMAILJS_ACCOUNT_3_SERVICE_ID, EMAILJS_ORDER_AUTOREPLY_TEMPLATE_ID, templateParams, {
+      publicKey: EMAILJS_ACCOUNT_3_PUBLIC_KEY
+    })
+    .catch(function (error) {
+      console.warn("Order auto-reply email failed to send:", error);
     });
 }
 
@@ -1684,6 +1786,7 @@ document.addEventListener("DOMContentLoaded", function () {
   connectScrollReveal();
   loadLiveProducts();
   loadLiveSiteAssets();
+  loadLiveReviews();
   connectFeedbackForm();
   connectContactForm();
 

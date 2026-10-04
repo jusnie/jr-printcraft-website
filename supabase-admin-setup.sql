@@ -232,13 +232,15 @@ create table if not exists public.feedback (
   is_read boolean not null default false,
   admin_reply text,
   replied_at timestamptz,
+  is_published boolean not null default false,
   created_at timestamptz not null default now()
 );
 
--- Older projects that already ran this script before the reply feature
+-- Older projects that already ran this script before these features
 -- existed won't error out -- this adds the columns if they're missing.
 alter table public.feedback add column if not exists admin_reply text;
 alter table public.feedback add column if not exists replied_at timestamptz;
+alter table public.feedback add column if not exists is_published boolean not null default false;
 
 alter table public.feedback enable row level security;
 
@@ -273,6 +275,27 @@ create policy "Admins can delete feedback"
   for delete
   to authenticated
   using (true);
+
+-- 8) Public "Reviews" section on the storefront -------------------------------
+-- Customer feedback stays private (see the RLS policies above -- nobody but
+-- a logged-in admin can ever read the feedback table directly), but the
+-- owner can mark individual feedback entries "Publish as review" from
+-- admin.html. This view exposes ONLY those approved entries, and ONLY the
+-- safe, non-sensitive columns (no email address), so the storefront can
+-- safely read it with the public anon key.
+--
+-- Views created while running this script as the Supabase SQL Editor's
+-- default role are owned by a role that bypasses row-level security, so
+-- this view's own "where is_published = true" filter is what keeps
+-- unpublished/private feedback hidden -- it does not depend on (and is not
+-- blocked by) the "Admins can read feedback" policy above.
+drop view if exists public.published_reviews;
+create view public.published_reviews as
+  select id, name, rating, message, created_at
+  from public.feedback
+  where is_published = true;
+
+grant select on public.published_reviews to anon, authenticated;
 
 -- ============================================================================
 -- Done. Next steps:
