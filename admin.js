@@ -1632,8 +1632,8 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!client) return;
 
       const currentPassword = document.getElementById("currentPassword").value;
-      const newPassword = document.getElementById("newPassword").value;
-      const confirmPassword = document.getElementById("confirmPassword").value;
+      const newPassword = document.getElementById("changeNewPassword").value;
+      const confirmPassword = document.getElementById("changeConfirmPassword").value;
 
       setSettingsMessage(passwordMsg, "", false);
 
