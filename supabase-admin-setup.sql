@@ -20,6 +20,10 @@
 --      Ceramic Ornament design shapes (e.g. Circle, Star, Snowflake, Heart)
 --      -- unlike the fixed rows above, the owner can add/rename/remove as
 --      many of these as they like from admin.html
+--   5c) Creates a "product_gallery_images" table (same "product-images"
+--      Storage bucket as each product's main photo) so the owner can add
+--      extra/alternate photos per product, shown as clickable thumbnails
+--      on the storefront and in the Customize popup
 --
 -- IMPORTANT: this seeds image_url with the CURRENT local filenames (e.g.
 -- "client1.jpg"). If you haven't uploaded those actual photo files to your
@@ -41,6 +45,7 @@ create table if not exists public.products (
   description text,
   size_type text not null default 'none',
   sizes jsonb not null default '[]'::jsonb,
+  in_stock boolean not null default true,
   sort_order int not null default 0,
   updated_at timestamptz not null default now()
 );
@@ -50,17 +55,21 @@ create table if not exists public.products (
 alter table public.products add column if not exists description text;
 alter table public.products add column if not exists size_type text not null default 'none';
 alter table public.products add column if not exists sizes jsonb not null default '[]'::jsonb;
+alter table public.products add column if not exists in_stock boolean not null default true;
 
 -- "size_type" controls which fixed size options the storefront's Customize
 -- modal offers for a product:
 --   'drinkware' -> 12oz / 16oz / 22oz   (beer glasses, tumblers, mugs)
---   'apparel'   -> Small / Medium / Large / XL   (shirts)
+--   'apparel'   -> Small / Medium / Large / XL / 2XL / 3XL   (shirts)
 --   'none'      -> no size selector shown at all (ornaments, notebooks, etc.)
 -- "sizes" is a JSON array like [{"label":"12oz","available":true}, ...] --
 -- the admin dashboard lets the owner tick/untick which specific sizes are
 -- currently available; unavailable ones still show in the dropdown but are
 -- disabled and labeled "(Not Available)" so customers can see what's
 -- normally offered even when it's temporarily out of stock.
+-- "in_stock" drives the green/red "In Stock" / "Out of Stock" badge shown
+-- on the storefront (product card + Customize popup); customers can't
+-- Customize/order a product while it's unchecked in the admin dashboard.
 alter table public.products drop constraint if exists products_size_type_check;
 alter table public.products add constraint products_size_type_check
   check (size_type in ('drinkware', 'apparel', 'none'));
@@ -285,6 +294,49 @@ create policy "Admins can delete ornament designs"
   for delete
   to authenticated
   using (true);
+
+-- 6c) Table for extra/alternate product photos ("gallery") --------------------
+-- Each product can have zero or more EXTRA photos on top of its main
+-- "image_url" (e.g. a different angle, a different color, a close-up).
+-- They show up as small clickable thumbnails under the product description
+-- on the storefront (and inside the Customize popup) -- clicking one swaps
+-- the big photo, same idea as the "Colour Name" thumbnails on a shopping
+-- site. Managed from admin.html's Products section, stored in the same
+-- "product-images" Storage bucket already used for each product's main
+-- photo -- no new bucket needed.
+create table if not exists public.product_gallery_images (
+  id uuid primary key default gen_random_uuid(),
+  product_key text not null,
+  image_url text not null,
+  sort_order int not null default 0,
+  created_at timestamptz not null default now()
+);
+
+alter table public.product_gallery_images enable row level security;
+
+drop policy if exists "Public can read product gallery images" on public.product_gallery_images;
+create policy "Public can read product gallery images"
+  on public.product_gallery_images
+  for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "Admins can add product gallery images" on public.product_gallery_images;
+create policy "Admins can add product gallery images"
+  on public.product_gallery_images
+  for insert
+  to authenticated
+  with check (true);
+
+drop policy if exists "Admins can delete product gallery images" on public.product_gallery_images;
+create policy "Admins can delete product gallery images"
+  on public.product_gallery_images
+  for delete
+  to authenticated
+  using (true);
+
+grant select on public.product_gallery_images to anon, authenticated;
+grant insert, delete on public.product_gallery_images to authenticated;
 
 -- 7) Table for customer feedback submitted from the website ------------------
 create table if not exists public.feedback (

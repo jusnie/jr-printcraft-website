@@ -115,6 +115,11 @@ const SUPABASE_REVIEWS_TABLE = "published_reviews";
 // the fixed logo/hero/gallery rows in SUPABASE_SITE_ASSETS_TABLE.
 const SUPABASE_ORNAMENT_DESIGNS_TABLE = "ornament_designs";
 
+// Extra/alternate photos per product (on top of each product's main
+// "image_url"), shown as clickable thumbnails on the storefront and in the
+// Customize popup. Owner-managed, unlimited per product, from admin.html.
+const SUPABASE_PRODUCT_GALLERY_TABLE = "product_gallery_images";
+
 // ---- EmailJS Account 1: orders (owner notification) + contact form -------
 const EMAILJS_ACCOUNT_1_PUBLIC_KEY = "RqKFWxsBxrbdt_hCY";
 const EMAILJS_ACCOUNT_1_SERVICE_ID = "service_lv1ldvg";

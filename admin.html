@@ -19,7 +19,7 @@
     rel="stylesheet"
   >
 
-  <link rel="stylesheet" href="admin.css?v=1">
+  <link rel="stylesheet" href="admin.css?v=3">
 </head>
 <body>
 
@@ -136,11 +136,19 @@
           <select id="newProductSizeType" class="admin-size-type-select">
             <option value="none">No sizes</option>
             <option value="drinkware">Drinkware (12oz / 16oz / 22oz)</option>
-            <option value="apparel">Apparel (Small / Medium / Large / XL)</option>
+            <option value="apparel">Apparel (Small / Medium / Large / XL / 2XL / 3XL)</option>
           </select>
         </label>
 
         <div class="admin-size-checkboxes" id="newProductSizeChecks" hidden></div>
+
+        <label class="admin-field">
+          <span>Stock status</span>
+          <label class="admin-stock-toggle">
+            <input type="checkbox" id="newProductInStock" checked>
+            <span class="admin-stock-toggle-text">In Stock</span>
+          </label>
+        </label>
 
         <label class="admin-field">
           <span>Product photo</span>
@@ -317,11 +325,19 @@
           <select class="admin-size-type-select">
             <option value="none">No sizes</option>
             <option value="drinkware">Drinkware (12oz / 16oz / 22oz)</option>
-            <option value="apparel">Apparel (Small / Medium / Large / XL)</option>
+            <option value="apparel">Apparel (Small / Medium / Large / XL / 2XL / 3XL)</option>
           </select>
         </label>
 
         <div class="admin-size-checkboxes" hidden></div>
+
+        <label class="admin-field">
+          <span>Stock status</span>
+          <label class="admin-stock-toggle">
+            <input type="checkbox" class="admin-instock-checkbox" checked>
+            <span class="admin-stock-toggle-text">In Stock</span>
+          </label>
+        </label>
 
         <label class="admin-field admin-file-field">
           <span>Replace photo</span>
@@ -337,6 +353,24 @@
             <span class="admin-file-upload-name">No file selected</span>
           </span>
         </label>
+
+        <div class="admin-field admin-gallery-field">
+          <span>Extra photos (shown as thumbnails customers can click through)</span>
+          <div class="admin-gallery-thumbs"></div>
+
+          <span class="admin-file-upload admin-gallery-upload">
+            <input type="file" accept="image/png, image/jpeg, image/webp" class="admin-gallery-file-input">
+            <span class="admin-file-upload-btn">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 5v14M5 12h14"></path>
+              </svg>
+              Add Photo
+            </span>
+            <span class="admin-file-upload-name admin-gallery-upload-name">No file selected</span>
+          </span>
+
+          <p class="admin-gallery-status"></p>
+        </div>
 
         <div class="admin-card-actions">
           <button type="button" class="btn primary small admin-save-btn">Save Changes</button>
@@ -474,7 +508,7 @@
        which meant both of those silently never actually sent any email. -->
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
-  <script src="supabase-config.js?v=1"></script>
-  <script src="admin.js?v=1" defer></script>
+  <script src="supabase-config.js?v=2"></script>
+  <script src="admin.js?v=3" defer></script>
 </body>
 </html>

@@ -4,7 +4,24 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>JR PrintCraft Express</title>
+  <title>JR PrintCraft Express | Custom Prints, Apparel &amp; Promo Products in Canada</title>
+  <meta name="description" content="JR PrintCraft Express makes custom-printed gifts, apparel, drinkware, and promo products across Canada. Upload your design, pick a size, and order online.">
+  <meta name="keywords" content="JR PrintCraft Express, custom printing Canada, custom t-shirts, custom tumblers, personalized gifts, promo products, ceramic ornaments">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://jrprintcraftexpress.com/">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://jrprintcraftexpress.com/">
+  <meta property="og:title" content="JR PrintCraft Express | Custom Prints, Apparel &amp; Promo Products">
+  <meta property="og:description" content="Custom-printed gifts, apparel, drinkware, and promo products -- shipped across Canada. Upload your design, pick a size, and order online.">
+  <meta property="og:image" content="https://jrprintcraftexpress.com/apple-touch-icon.png">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="JR PrintCraft Express | Custom Prints, Apparel &amp; Promo Products">
+  <meta name="twitter:description" content="Custom-printed gifts, apparel, drinkware, and promo products -- shipped across Canada.">
+  <meta name="twitter:image" content="https://jrprintcraftexpress.com/apple-touch-icon.png">
 
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
@@ -19,7 +36,7 @@
     rel="stylesheet"
   >
 
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 
 <body>
@@ -173,6 +190,16 @@
         <article class="product-card reveal">
           <img loading="lazy" decoding="async">
 
+          <span class="product-stock-badge"></span>
+
+          <button type="button" class="product-zoom-btn" aria-label="View full photo">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"></circle>
+              <path d="M21 21l-4.35-4.35"></path>
+              <path d="M11 8v6M8 11h6"></path>
+            </svg>
+          </button>
+
           <div class="product-body">
             <div class="product-top">
               <h3></h3>
@@ -180,6 +207,8 @@
             </div>
 
             <p class="desc"></p>
+
+            <div class="product-gallery-thumbs" hidden></div>
 
             <div class="product-actions ornament-actions" hidden>
               <!-- One button per design is rendered here by script.js
@@ -478,8 +507,27 @@
 
       <div class="modal-body">
         <div class="customize-modal-product">
-          <strong id="customizeProductName">Product Name</strong>
-          <span id="customizeProductPrice">CAD 0.00</span>
+          <div class="customize-modal-image">
+            <img id="customizeProductImage" alt="">
+
+            <span class="product-stock-badge" id="customizeStockBadge"></span>
+
+            <button type="button" class="product-zoom-btn" id="customizeZoomBtn" aria-label="View full photo">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="M21 21l-4.35-4.35"></path>
+                <path d="M11 8v6M8 11h6"></path>
+              </svg>
+            </button>
+          </div>
+
+          <div class="product-gallery-thumbs" id="customizeGalleryThumbs" hidden></div>
+
+          <div class="customize-modal-title-row">
+            <strong id="customizeProductName">Product Name</strong>
+            <span id="customizeProductPrice">CAD 0.00</span>
+          </div>
+
           <p class="customize-modal-desc" id="customizeProductDesc"></p>
         </div>
 
@@ -652,6 +700,21 @@
     </div>
   </div>
 
+  <!-- Full-size photo viewer -- opened by clicking a product's zoom icon
+       (on the grid card or inside the Customize popup) so customers can see
+       the complete, uncropped photo instead of just the cropped thumbnail. -->
+  <div class="modal-overlay" id="imageViewerModal" aria-hidden="true">
+    <div class="modal image-viewer-modal" role="dialog" aria-modal="true" aria-labelledby="imageViewerTitle">
+      <div class="modal-head">
+        <h3 id="imageViewerTitle">Full photo</h3>
+        <button type="button" class="modal-close" data-close-modal aria-label="Close dialog">×</button>
+      </div>
+      <div class="modal-body image-viewer-body">
+        <img id="imageViewerImg" src="" alt="">
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="cookieModal" aria-hidden="true">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cookieModalTitle">
       <div class="modal-head">
@@ -722,7 +785,7 @@
   <!-- EmailJS: used to send orders straight to the shop owner's inbox -->
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
-  <script src="supabase-config.js?v=1"></script>
-  <script src="script.js?v=5" defer></script>
+  <script src="supabase-config.js?v=2"></script>
+  <script src="script.js?v=7" defer></script>
 </body>
 </html>

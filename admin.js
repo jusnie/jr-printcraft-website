@@ -36,6 +36,7 @@ const newProductPrice = document.getElementById("newProductPrice");
 const newProductDescription = document.getElementById("newProductDescription");
 const newProductSizeType = document.getElementById("newProductSizeType");
 const newProductSizeChecks = document.getElementById("newProductSizeChecks");
+const newProductInStock = document.getElementById("newProductInStock");
 const newProductPhoto = document.getElementById("newProductPhoto");
 const assetsStatus = document.getElementById("assetsStatus");
 const adminAssetGrid = document.getElementById("adminAssetGrid");
@@ -198,10 +199,18 @@ async function loadProducts(client) {
   setDashboardStatus("Loading products...", false);
   adminProductGrid.innerHTML = "";
 
-  const { data, error } = await client
-    .from(SUPABASE_PRODUCTS_TABLE)
-    .select("key, name, price, image_url, description, size_type, sizes")
-    .order("sort_order", { ascending: true });
+  const [productsResult, galleryResult] = await Promise.all([
+    client
+      .from(SUPABASE_PRODUCTS_TABLE)
+      .select("key, name, price, image_url, description, size_type, sizes, in_stock")
+      .order("sort_order", { ascending: true }),
+    client
+      .from(SUPABASE_PRODUCT_GALLERY_TABLE)
+      .select("id, product_key, image_url, sort_order")
+      .order("sort_order", { ascending: true })
+  ]);
+
+  const { data, error } = productsResult;
 
   if (error) {
     setDashboardStatus(
@@ -221,8 +230,26 @@ async function loadProducts(client) {
 
   setDashboardStatus("", false);
 
+  const galleryByKey = {};
+
+  if (galleryResult.data) {
+    galleryResult.data.forEach(function (row) {
+      if (!row || !row.product_key) {
+        return;
+      }
+
+      if (!galleryByKey[row.product_key]) {
+        galleryByKey[row.product_key] = [];
+      }
+
+      galleryByKey[row.product_key].push(row);
+    });
+  } else if (galleryResult.error) {
+    console.warn("Could not load product gallery images:", galleryResult.error);
+  }
+
   data.forEach(function (row) {
-    renderProductCard(client, row);
+    renderProductCard(client, row, galleryByKey[row.key] || []);
   });
 }
 
@@ -321,7 +348,7 @@ function slugifyProductKey(name) {
 // agree on what "drinkware"/"apparel" sizes mean.
 const SIZE_OPTIONS_BY_TYPE = {
   drinkware: ["12oz", "16oz", "22oz"],
-  apparel: ["Small", "Medium", "Large", "XL"]
+  apparel: ["Small", "Medium", "Large", "XL", "2XL", "3XL"]
 };
 
 // Fills a product card's ".admin-size-checkboxes" container with one
@@ -422,7 +449,32 @@ function connectSizeTypeSelect(selectEl, checkboxContainer, initialSizeType, ini
   });
 }
 
-function renderProductCard(client, row) {
+// Wires an "In Stock" checkbox + its pill wrapper so the pill's color/text
+// ("In Stock" green vs "Out of Stock" red) always matches whether it's
+// checked, both on first render and whenever the owner toggles it.
+function connectStockToggle(checkbox, toggleEl, initialInStock) {
+  if (!checkbox) {
+    return;
+  }
+
+  function sync() {
+    const textEl = checkbox.parentElement.querySelector(".admin-stock-toggle-text");
+
+    if (textEl) {
+      textEl.textContent = checkbox.checked ? "In Stock" : "Out of Stock";
+    }
+
+    if (toggleEl) {
+      toggleEl.classList.toggle("is-out-of-stock", !checkbox.checked);
+    }
+  }
+
+  checkbox.checked = initialInStock !== false;
+  sync();
+  checkbox.addEventListener("change", sync);
+}
+
+function renderProductCard(client, row, galleryImages) {
   const node = adminProductTemplate.content.cloneNode(true);
   const cardEl = node.querySelector(".admin-product-card");
   const img = node.querySelector(".admin-product-image img");
@@ -438,6 +490,13 @@ function renderProductCard(client, row) {
   const cancelBtn = node.querySelector(".admin-cancel-btn");
   const deleteBtn = node.querySelector(".admin-delete-btn");
   const statusEl = node.querySelector(".admin-card-status");
+  const galleryField = node.querySelector(".admin-gallery-field");
+  const galleryThumbsEl = node.querySelector(".admin-gallery-thumbs");
+  const galleryFileInput = node.querySelector(".admin-gallery-file-input");
+  const galleryFileNameEl = node.querySelector(".admin-gallery-upload-name");
+  const galleryStatusEl = node.querySelector(".admin-gallery-status");
+  const inStockCheckbox = node.querySelector(".admin-instock-checkbox");
+  const inStockToggle = inStockCheckbox ? inStockCheckbox.closest(".admin-stock-toggle") : null;
 
   img.src = row.image_url || "";
   img.alt = row.name || row.key;
@@ -446,21 +505,202 @@ function renderProductCard(client, row) {
     row.price !== null && row.price !== undefined ? row.price : "";
   descInput.value = row.description || "";
   connectSizeTypeSelect(sizeTypeSelect, sizeCheckboxes, row.size_type, row.sizes);
+  connectStockToggle(inStockCheckbox, inStockToggle, row.in_stock !== false);
 
   const preview = setupImagePreview(fileInput, img, pendingBadge, cancelBtn, statusEl, fileNameEl);
 
   saveBtn.addEventListener("click", function () {
-    saveProduct(client, row.key, nameInput, priceInput, descInput, sizeTypeSelect, sizeCheckboxes, fileInput, saveBtn, statusEl, img, preview);
+    saveProduct(client, row.key, nameInput, priceInput, descInput, sizeTypeSelect, sizeCheckboxes, inStockCheckbox, fileInput, saveBtn, statusEl, img, preview);
   });
 
   deleteBtn.addEventListener("click", function () {
     deleteProduct(client, row.key, row.name, cardEl, deleteBtn, statusEl);
   });
 
+  // "Ceramic Ornaments" already has its own separate owner-managed "Looks"
+  // list (a different Supabase table, edited from its own section further
+  // down this dashboard) for swapping its photo, so the generic extra-photo
+  // gallery field would just be a confusing second/duplicate control here.
+  if (row.key === "ornament") {
+    if (galleryField) {
+      galleryField.remove();
+    }
+  } else if (galleryThumbsEl && galleryFileInput) {
+    renderAdminGalleryThumbs(client, row.key, galleryImages || [], galleryThumbsEl, galleryStatusEl);
+
+    galleryFileInput.addEventListener("change", function () {
+      const file = galleryFileInput.files && galleryFileInput.files[0];
+
+      if (!file) {
+        return;
+      }
+
+      if (galleryFileNameEl) {
+        galleryFileNameEl.textContent = file.name;
+      }
+
+      addProductGalleryImage(client, row.key, file, galleryFileInput, galleryFileNameEl, galleryThumbsEl, galleryStatusEl);
+    });
+  }
+
   adminProductGrid.appendChild(node);
 }
 
-async function saveProduct(client, key, nameInput, priceInput, descInput, sizeTypeSelect, sizeCheckboxes, fileInput, saveBtn, statusEl, imgEl, preview) {
+// Builds the small thumbnail row (with a "x" remove button on each) inside
+// a product card's "Extra photos" field, from whatever rows
+// product_gallery_images currently has for that product key.
+function renderAdminGalleryThumbs(client, productKey, images, galleryThumbsEl, galleryStatusEl) {
+  galleryThumbsEl.innerHTML = "";
+
+  images.forEach(function (image) {
+    const thumb = document.createElement("div");
+    thumb.className = "admin-gallery-thumb";
+
+    const thumbImg = document.createElement("img");
+    thumbImg.src = image.image_url;
+    thumbImg.alt = "";
+    thumb.appendChild(thumbImg);
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "admin-gallery-thumb-remove";
+    removeBtn.setAttribute("aria-label", "Remove this photo");
+    removeBtn.textContent = "\u00d7";
+    removeBtn.addEventListener("click", function () {
+      deleteProductGalleryImage(client, image.id, thumb, galleryStatusEl);
+    });
+    thumb.appendChild(removeBtn);
+
+    galleryThumbsEl.appendChild(thumb);
+  });
+}
+
+// Uploads a new extra photo to the same "product-images" Storage bucket
+// used for each product's main photo (distinct filename prefix so the two
+// never collide), inserts the row into product_gallery_images, then drops
+// a new thumbnail into the DOM -- all immediately on file selection, with
+// no separate "Save" step since this is additive and independent of the
+// product's own Save Changes button.
+async function addProductGalleryImage(client, productKey, file, galleryFileInput, galleryFileNameEl, galleryThumbsEl, galleryStatusEl) {
+  if (galleryStatusEl) {
+    galleryStatusEl.textContent = "Uploading...";
+    galleryStatusEl.className = "admin-gallery-status";
+  }
+
+  try {
+    const ext = file.name.split(".").pop();
+    const path = "gallery-" + productKey + "-" + Date.now() + "." + ext;
+
+    const { error: uploadError } = await client.storage
+      .from(SUPABASE_PRODUCTS_BUCKET)
+      .upload(path, file, { upsert: true });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data: publicUrlData } = client.storage
+      .from(SUPABASE_PRODUCTS_BUCKET)
+      .getPublicUrl(path);
+
+    const imageUrl = publicUrlData && publicUrlData.publicUrl;
+
+    if (!imageUrl) {
+      throw new Error("Could not get a public URL for the uploaded photo.");
+    }
+
+    const { data: insertedRows, error: insertError } = await client
+      .from(SUPABASE_PRODUCT_GALLERY_TABLE)
+      .insert({ product_key: productKey, image_url: imageUrl, sort_order: Date.now() })
+      .select("id, product_key, image_url, sort_order");
+
+    if (insertError) {
+      throw insertError;
+    }
+
+    const insertedRow = insertedRows && insertedRows[0];
+
+    if (insertedRow) {
+      const thumb = document.createElement("div");
+      thumb.className = "admin-gallery-thumb";
+
+      const thumbImg = document.createElement("img");
+      thumbImg.src = insertedRow.image_url;
+      thumbImg.alt = "";
+      thumb.appendChild(thumbImg);
+
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "admin-gallery-thumb-remove";
+      removeBtn.setAttribute("aria-label", "Remove this photo");
+      removeBtn.textContent = "\u00d7";
+      removeBtn.addEventListener("click", function () {
+        deleteProductGalleryImage(client, insertedRow.id, thumb, galleryStatusEl);
+      });
+      thumb.appendChild(removeBtn);
+
+      galleryThumbsEl.appendChild(thumb);
+    }
+
+    galleryFileInput.value = "";
+
+    if (galleryFileNameEl) {
+      galleryFileNameEl.textContent = "No file selected";
+    }
+
+    if (galleryStatusEl) {
+      galleryStatusEl.textContent = "Photo added!";
+      galleryStatusEl.className = "admin-gallery-status is-success";
+    }
+  } catch (err) {
+    console.error("Gallery photo upload failed:", err);
+
+    if (galleryStatusEl) {
+      galleryStatusEl.textContent = "Upload failed: " + (err.message || "unknown error");
+      galleryStatusEl.className = "admin-gallery-status is-error";
+    }
+  }
+}
+
+// Removes a single extra photo. Only the database row is deleted (matching
+// this project's existing convention -- e.g. deleting a product or an
+// ornament design also only removes its row, never the underlying Storage
+// file), so the thumbnail disappears from the storefront immediately while
+// the original file is simply left orphaned in the bucket.
+async function deleteProductGalleryImage(client, imageId, thumbEl, galleryStatusEl) {
+  const confirmed = window.confirm("Remove this photo?");
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    const { error } = await client
+      .from(SUPABASE_PRODUCT_GALLERY_TABLE)
+      .delete()
+      .eq("id", imageId);
+
+    if (error) {
+      throw error;
+    }
+
+    thumbEl.remove();
+
+    if (galleryStatusEl) {
+      galleryStatusEl.textContent = "Removed.";
+      galleryStatusEl.className = "admin-gallery-status is-success";
+    }
+  } catch (err) {
+    console.error("Could not remove gallery photo:", err);
+
+    if (galleryStatusEl) {
+      galleryStatusEl.textContent = "Could not remove photo: " + (err.message || "unknown error");
+      galleryStatusEl.className = "admin-gallery-status is-error";
+    }
+  }
+}
+
+async function saveProduct(client, key, nameInput, priceInput, descInput, sizeTypeSelect, sizeCheckboxes, inStockCheckbox, fileInput, saveBtn, statusEl, imgEl, preview) {
   const newName = nameInput.value.trim();
   const newPrice = parseFloat(priceInput.value);
 
@@ -488,6 +728,7 @@ async function saveProduct(client, key, nameInput, priceInput, descInput, sizeTy
       description: descInput.value.trim(),
       size_type: sizeType,
       sizes: sizeType === "none" ? [] : readSizesFromCheckboxes(sizeCheckboxes),
+      in_stock: inStockCheckbox ? inStockCheckbox.checked : true,
       updated_at: new Date().toISOString()
     };
 
@@ -597,6 +838,7 @@ function connectAddProductForm(client) {
   const photoNameEl = addProductForm.querySelector(".admin-file-upload-name");
   wireFileNameDisplay(newProductPhoto, photoNameEl, "No file selected");
   connectSizeTypeSelect(newProductSizeType, newProductSizeChecks, "none", []);
+  connectStockToggle(newProductInStock, newProductInStock ? newProductInStock.closest(".admin-stock-toggle") : null, true);
 
   function resetAddProductForm() {
     addProductForm.reset();
@@ -606,6 +848,10 @@ function connectAddProductForm(client) {
     if (newProductSizeChecks) {
       newProductSizeChecks.hidden = true;
       newProductSizeChecks.innerHTML = "";
+    }
+    if (newProductInStock) {
+      newProductInStock.checked = true;
+      connectStockToggle(newProductInStock, newProductInStock.closest(".admin-stock-toggle"), true);
     }
     setSettingsMessage(addProductStatus, "", false);
   }
@@ -684,6 +930,7 @@ function connectAddProductForm(client) {
         description: description,
         size_type: sizeType,
         sizes: sizeType === "none" ? [] : readSizesFromCheckboxes(newProductSizeChecks),
+        in_stock: newProductInStock ? newProductInStock.checked : true,
         sort_order: Date.now()
       };
 

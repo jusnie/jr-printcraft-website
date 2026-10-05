@@ -52,7 +52,7 @@ function money(value) {
 // shirts; "none" means no size selector at all (ornaments, notebooks, etc.).
 const SIZE_OPTIONS_BY_TYPE = {
   drinkware: ["12oz", "16oz", "22oz"],
-  apparel: ["Small", "Medium", "Large", "XL"]
+  apparel: ["Small", "Medium", "Large", "XL", "2XL", "3XL"]
 };
 
 const DEFAULT_PRODUCTS = [
@@ -90,7 +90,9 @@ const DEFAULT_PRODUCTS = [
       { label: "Small", available: true },
       { label: "Medium", available: true },
       { label: "Large", available: true },
-      { label: "XL", available: true }
+      { label: "XL", available: true },
+      { label: "2XL", available: true },
+      { label: "3XL", available: true }
     ]
   },
   {
@@ -104,7 +106,9 @@ const DEFAULT_PRODUCTS = [
       { label: "Small", available: true },
       { label: "Medium", available: true },
       { label: "Large", available: true },
-      { label: "XL", available: true }
+      { label: "XL", available: true },
+      { label: "2XL", available: true },
+      { label: "3XL", available: true }
     ]
   },
   {
@@ -160,6 +164,13 @@ const DEFAULT_PRODUCTS = [
 // customize buttons themselves only carry key/name/price in their dataset.
 let currentProductsByKey = {};
 
+// Extra/alternate photos per product key (on top of each product's main
+// image), fetched from Supabase by loadProductGalleryImages() below. Read
+// by renderProductGrid() (product cards) and openCustomizeModal() (the
+// Customize popup) to build the clickable thumbnail row. Empty until/unless
+// Supabase is configured and the owner has added gallery photos.
+let productGalleryByKey = {};
+
 // Supabase returns the "sizes" jsonb column already parsed into a JS array,
 // but this tolerates a raw JSON string too (e.g. if ever hand-edited in the
 // Supabase table editor) and always returns a clean, safe array.
@@ -185,6 +196,56 @@ function normalizeSizes(sizes) {
     });
 }
 
+// Builds a row of clickable thumbnails inside `container` -- one per photo
+// in `images` (main photo first, then any extra/alternate gallery photos).
+// Clicking a thumbnail swaps `mainImgEl`'s photo and highlights itself.
+// Hides the whole row when there's nothing to switch between (0 or 1 photo
+// total), since a single-photo product doesn't need a thumbnail picker.
+function renderGalleryThumbs(container, images, mainImgEl) {
+  if (!container) {
+    return;
+  }
+
+  const uniqueImages = images.filter(function (url, index) {
+    return url && images.indexOf(url) === index;
+  });
+
+  container.innerHTML = "";
+
+  if (uniqueImages.length < 2 || !mainImgEl) {
+    container.hidden = true;
+    return;
+  }
+
+  container.hidden = false;
+
+  uniqueImages.forEach(function (url, index) {
+    const thumb = document.createElement("button");
+    thumb.type = "button";
+    thumb.className = "gallery-thumb" + (index === 0 ? " is-active" : "");
+    thumb.setAttribute("aria-label", "Show photo " + (index + 1));
+
+    const thumbImg = document.createElement("img");
+    thumbImg.src = url;
+    thumbImg.alt = "";
+    thumbImg.loading = "lazy";
+    thumbImg.decoding = "async";
+    thumb.appendChild(thumbImg);
+
+    thumb.addEventListener("click", function () {
+      mainImgEl.src = url;
+
+      container.querySelectorAll(".gallery-thumb").forEach(function (t) {
+        t.classList.remove("is-active");
+      });
+
+      thumb.classList.add("is-active");
+    });
+
+    container.appendChild(thumb);
+  });
+}
+
 function renderProductGrid(products) {
   const grid = document.getElementById("productGrid");
   const template = document.getElementById("productCardTemplate");
@@ -202,10 +263,14 @@ function renderProductGrid(products) {
       return;
     }
 
+    const inStock = product.in_stock !== false;
+
     currentProductsByKey[product.key] = {
       sizeType: product.size_type || "none",
       sizes: normalizeSizes(product.sizes),
-      description: product.description || ""
+      description: product.description || "",
+      imageUrl: product.image_url || "",
+      inStock: inStock
     };
 
     const card = template.content.firstElementChild.cloneNode(true);
@@ -214,8 +279,11 @@ function renderProductGrid(products) {
     const nameEl = card.querySelector("h3");
     const priceEl = card.querySelector(".price");
     const descEl = card.querySelector(".desc");
+    const galleryThumbs = card.querySelector(".product-gallery-thumbs");
     const customizeBtn = card.querySelector(".customize-btn");
     const ornamentActions = card.querySelector(".ornament-actions");
+    const stockBadge = card.querySelector(".product-stock-badge");
+    const zoomBtn = card.querySelector(".product-zoom-btn");
     const numericPrice = Number(product.price) || 0;
 
     if (img) {
@@ -237,10 +305,27 @@ function renderProductGrid(products) {
       descEl.textContent = product.description || "";
     }
 
+    if (stockBadge) {
+      stockBadge.textContent = inStock ? "In Stock" : "Out of Stock";
+      stockBadge.classList.toggle("is-out-of-stock", !inStock);
+    }
+
+    if (zoomBtn && img) {
+      zoomBtn.addEventListener("click", function (event) {
+        event.preventDefault();
+        openImageViewer(img.src, img.alt);
+      });
+    }
+
     if (customizeBtn) {
       customizeBtn.dataset.productKey = product.key;
       customizeBtn.dataset.productName = product.name;
       customizeBtn.dataset.productPrice = String(numericPrice);
+
+      if (!inStock) {
+        customizeBtn.disabled = true;
+        customizeBtn.textContent = "Out of Stock";
+      }
     }
 
     // "Ceramic Ornaments" is special-cased with swappable "Look" buttons --
@@ -260,10 +345,24 @@ function renderProductGrid(products) {
         ornamentActions.hidden = false;
         renderOrnamentLookButtons(ornamentActions);
       }
-    } else if (ornamentActions) {
-      // Every other product doesn't need the 4 "Look" buttons at all --
-      // remove the block entirely instead of just hiding it.
-      ornamentActions.remove();
+
+      // Ceramic Ornaments already has its own "Look" swatches above for
+      // switching designs, so skip the generic extra-photos thumbnail row
+      // here to avoid showing two different swatch rows on one card.
+      if (galleryThumbs) {
+        galleryThumbs.remove();
+      }
+    } else {
+      if (ornamentActions) {
+        // Every other product doesn't need the 4 "Look" buttons at all --
+        // remove the block entirely instead of just hiding it.
+        ornamentActions.remove();
+      }
+
+      if (galleryThumbs && img) {
+        const extraImages = productGalleryByKey[product.key] || [];
+        renderGalleryThumbs(galleryThumbs, [product.image_url || ""].concat(extraImages), img);
+      }
     }
 
     grid.appendChild(card);
@@ -282,14 +381,45 @@ async function loadLiveProducts() {
   }
 
   try {
-    const { data, error } = await client
-      .from(SUPABASE_PRODUCTS_TABLE)
-      .select("key, name, price, image_url, description, size_type, sizes, sort_order")
-      .order("sort_order", { ascending: true });
+    // Fetched together so productGalleryByKey is already populated the one
+    // time renderProductGrid() runs with the live catalog -- no need for a
+    // separate re-render pass once gallery photos show up.
+    const [productsResult, galleryResult] = await Promise.all([
+      client
+        .from(SUPABASE_PRODUCTS_TABLE)
+        .select("key, name, price, image_url, description, size_type, sizes, in_stock, sort_order")
+        .order("sort_order", { ascending: true }),
+      client
+        .from(SUPABASE_PRODUCT_GALLERY_TABLE)
+        .select("product_key, image_url, sort_order")
+        .order("sort_order", { ascending: true })
+    ]);
+
+    const { data, error } = productsResult;
 
     if (error || !data) {
       console.warn("Could not load live product data:", error);
       return;
+    }
+
+    if (galleryResult.data) {
+      const byKey = {};
+
+      galleryResult.data.forEach(function (row) {
+        if (!row || !row.product_key || !row.image_url) {
+          return;
+        }
+
+        if (!byKey[row.product_key]) {
+          byKey[row.product_key] = [];
+        }
+
+        byKey[row.product_key].push(row.image_url);
+      });
+
+      productGalleryByKey = byKey;
+    } else if (galleryResult.error) {
+      console.warn("Could not load product gallery images:", galleryResult.error);
     }
 
     // Supabase is reachable and configured, so it is the source of truth
@@ -558,6 +688,10 @@ function openCustomizeModal(key, name, price) {
   const nameElement = document.getElementById("customizeProductName");
   const priceElement = document.getElementById("customizeProductPrice");
   const descElement = document.getElementById("customizeProductDesc");
+  const imageElement = document.getElementById("customizeProductImage");
+  const galleryThumbsElement = document.getElementById("customizeGalleryThumbs");
+  const stockBadgeElement = document.getElementById("customizeStockBadge");
+  const zoomBtnElement = document.getElementById("customizeZoomBtn");
   const colorElement = document.getElementById("customizeColor");
   const textElement = document.getElementById("customizeText");
   const notesElement = document.getElementById("customizeNotes");
@@ -575,6 +709,32 @@ function openCustomizeModal(key, name, price) {
 
   if (priceElement) {
     priceElement.textContent = money(price);
+  }
+
+  if (imageElement) {
+    imageElement.src = productInfo.imageUrl || "";
+    imageElement.alt = name;
+  }
+
+  if (galleryThumbsElement && imageElement) {
+    const extraImages = productGalleryByKey[key] || [];
+    renderGalleryThumbs(galleryThumbsElement, [productInfo.imageUrl || ""].concat(extraImages), imageElement);
+  }
+
+  if (stockBadgeElement) {
+    const inStock = productInfo.inStock !== false;
+    stockBadgeElement.textContent = inStock ? "In Stock" : "Out of Stock";
+    stockBadgeElement.classList.toggle("is-out-of-stock", !inStock);
+  }
+
+  if (zoomBtnElement && imageElement) {
+    // Re-assigning .onclick (instead of addEventListener) every time this
+    // modal opens avoids stacking up duplicate listeners on the same
+    // always-present button across repeated "Customize" clicks.
+    zoomBtnElement.onclick = function (event) {
+      event.preventDefault();
+      openImageViewer(imageElement.src, imageElement.alt);
+    };
   }
 
   populateCustomizeSizeOptions(key);
@@ -1289,6 +1449,25 @@ function connectOrnamentButtons() {
 }
 
 const COOKIE_CONSENT_KEY = "jrpcCookieConsent";
+
+// Shows a product's complete, uncropped photo full-size in a popup --
+// used by the little round zoom button on each product card and inside the
+// Customize popup, since the card/modal thumbnails are cropped to a fixed
+// box (object-fit: cover) and don't always show the whole picture.
+function openImageViewer(src, alt) {
+  if (!src) {
+    return;
+  }
+
+  const viewerImg = document.getElementById("imageViewerImg");
+
+  if (viewerImg) {
+    viewerImg.src = src;
+    viewerImg.alt = alt || "";
+  }
+
+  openModal("imageViewerModal");
+}
 
 function openModal(modalId) {
   const modal = document.getElementById(modalId);
